@@ -1,0 +1,26 @@
+--- CLIENT INTAKE FORM: The Glow Room ---
+
+Provider Type: Esthetician
+
+Client Name: Sarah Miller
+Age: 29
+Gender: Female
+
+--- Skin & Lifestyle ---
+
+Primary Skin Concerns: I'm noticing more fine lines around my eyes and my skin feels dull. I also get some hormonal breakouts on my chin.
+Current Skincare Routine: I use a basic cleanser and moisturizer, sometimes a vitamin C serum in the morning.
+Sun Exposure: I work indoors, but I walk my dog daily. I don't always remember sunscreen.
+Allergies: None that I know of.
+
+--- Service History & Preferences ---
+
+Past Professional Services: I've had a few basic facials at other spas, but nothing consistent.
+Service Preferences: I prefer treatments that are relaxing and show visible results without being too aggressive. I'm not ready for needles yet.
+Visit Frequency Goal: I'd like to start coming in every 6-8 weeks.
+
+--- Current Booking ---
+
+Service Booked Today: Brightening Facial
+
+Additional Notes: I'm getting married in 6 months and want my skin to be glowing for the wedding! I'm open to suggestions for a long-term plan.
