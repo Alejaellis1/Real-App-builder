@@ -9,9 +9,11 @@ interface SettingsProps {
   setBuilderTheme: (theme: string) => void;
 }
 
+// FIX: Added 'children' to TooltipProps to align with modern React types where React.FC does not implicitly provide 'children'. This resolves errors related to passing children to the Tooltip component.
 type TooltipProps = {
   text: string;
   className?: string;
+  children: React.ReactNode;
 };
 
 const Tooltip: React.FC<TooltipProps> = ({ text, children, className }) => (

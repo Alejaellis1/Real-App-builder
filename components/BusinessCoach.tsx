@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getBusinessInsights } from '../services/geminiService';
 import Loader from './Loader';
@@ -42,6 +41,16 @@ const demoInsights = [
   "Botox is your top service. Create an Instagram post highlighting its benefits or showcasing a before-and-after to attract more high-value bookings.",
 ];
 
+// In a real app embedded in Automate Your Spa Portal, this function would use the GHL API
+// to fetch live performance data for the current sub-account (locationId).
+const fetchAutomateYourSpaPortalKpiData = async () => {
+    console.log("Fetching live KPI data from Automate Your Spa Portal...");
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log("Data received.");
+    return liveData;
+};
+
 
 const KpiCard: React.FC<{ title: string; value: string; trend: number; note: string; }> = ({ title, value, trend, note }) => {
     const isUp = trend > 0;
@@ -66,41 +75,54 @@ const KpiCard: React.FC<{ title: string; value: string; trend: number; note: str
 };
 
 const BusinessCoach: React.FC = () => {
-    const [isSoloProConnected, setIsSoloProConnected] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [insights, setInsights] = useState<string[] | null>(null);
+    const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+    const [kpiData, setKpiData] = useState(demoData);
+    const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+    const [insights, setInsights] = useState<string[] | null>(demoInsights);
     const [error, setError] = useState<string | null>(null);
 
-    const data = isSoloProConnected ? liveData : demoData;
-
-    const generateInsights = async () => {
-        setIsLoading(true);
+    const generateInsights = async (dataToAnalyze: typeof demoData) => {
+        setIsGeneratingInsights(true);
         setInsights(null);
         setError(null);
         
         try {
-            const generatedInsights = await getBusinessInsights(data);
+            const generatedInsights = await getBusinessInsights(dataToAnalyze);
             setInsights(generatedInsights);
         } catch(e) {
             console.error(e);
             setError("Couldn't connect to the AI. Showing sample insights instead.");
             setInsights(demoInsights); 
         } finally {
-            setIsLoading(false);
+            setIsGeneratingInsights(false);
         }
     };
 
-
-    useEffect(() => {
-        generateInsights();
-    }, [isSoloProConnected]);
+    const handleConnectAutomateYourSpaPortal = async () => {
+        setConnectionState('connecting');
+        try {
+            const data = await fetchAutomateYourSpaPortalKpiData();
+            setKpiData(data);
+            setConnectionState('connected');
+            await generateInsights(data);
+        } catch (e) {
+            console.error("Failed to fetch Automate Your Spa Portal data", e);
+            setConnectionState('disconnected');
+        }
+    };
     
+    const handleDisconnectAutomateYourSpaPortal = () => {
+        setConnectionState('disconnected');
+        setKpiData(demoData);
+        setInsights(demoInsights);
+    };
+
     const cardStyle = "bg-white/70 p-6 rounded-xl border border-pink-200 backdrop-blur-sm";
     const title3DStyle = { textShadow: '0 1px 1px rgba(255,255,255,0.7), 0 -1px 1px rgba(0,0,0,0.15)' };
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
-            {/* Header and SoloPro Connection */}
+            {/* Header and Connection */}
             <div className={cardStyle}>
                 <div className="flex justify-between items-start">
                     <div>
@@ -108,28 +130,37 @@ const BusinessCoach: React.FC = () => {
                         <p className="text-stone-600 mt-1">Your personalized dashboard for business growth.</p>
                     </div>
                 </div>
-                {!isSoloProConnected ? (
+                {connectionState === 'disconnected' && (
                     <div className="mt-4 bg-pink-50 border border-pink-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                          <div className="flex items-center gap-3">
                             <InfoIcon />
                             <p className="text-sm text-pink-800 text-center sm:text-left">
-                                This is demo data. Connect your SoloPro account to see your real insights.
+                                This is demo data. Connect your Automate Your Spa Portal account to pull your live KPIs.
                             </p>
                          </div>
                         <button 
-                            onClick={() => setIsSoloProConnected(true)}
+                            onClick={handleConnectAutomateYourSpaPortal}
                             className="text-sm font-semibold text-white bg-pink-600 px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors whitespace-nowrap w-full sm:w-auto"
                         >
-                            Connect SoloPro Account
+                            Connect Automate Your Spa Portal Account
                         </button>
                     </div>
-                ) : (
+                )}
+                 {connectionState === 'connecting' && (
+                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-center gap-3">
+                        <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <p className="text-sm text-blue-800 font-semibold animate-pulse">
+                            Connecting to Automate Your Spa Portal and fetching live data...
+                        </p>
+                    </div>
+                )}
+                {connectionState === 'connected' && (
                     <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
                         <p className="text-sm text-green-800 font-semibold">
-                            ✅ SoloPro Account Connected. Displaying live data.
+                            ✅ Automate Your Spa Portal Account Connected. Displaying live data.
                         </p>
                          <button 
-                            onClick={() => setIsSoloProConnected(false)}
+                            onClick={handleDisconnectAutomateYourSpaPortal}
                             className="text-sm font-semibold text-stone-600 hover:text-stone-900"
                          >
                             Disconnect
@@ -142,19 +173,19 @@ const BusinessCoach: React.FC = () => {
             <div className={cardStyle}>
                 <h3 className="font-bold text-xl text-stone-800 mb-4" style={title3DStyle}>Key Performance Indicators</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <KpiCard title="Weekly Bookings" value={`${data.weekly_bookings.value}`} trend={data.weekly_bookings.trend} note="vs. last week" />
-                    <KpiCard title="Monthly Revenue" value={`$${data.monthly_revenue.value.toLocaleString()}`} trend={data.monthly_revenue.trend} note="vs. last month" />
-                    <KpiCard title="Client Retention" value={`${(data.client_retention.value * 100).toFixed(0)}%`} trend={data.client_retention.trend} note="60-day cohort" />
-                    <KpiCard title="Leads Generated" value={`${data.leads_generated.value}`} trend={data.leads_generated.trend} note="this month" />
-                    <KpiCard title="Leads Converted" value={`${data.leads_converted.value}`} trend={data.leads_converted.trend} note="this month" />
-                    <KpiCard title="Top Service" value={data.top_services[0]} trend={0} note="most booked" />
+                    <KpiCard title="Weekly Bookings" value={`${kpiData.weekly_bookings.value}`} trend={kpiData.weekly_bookings.trend} note="vs. last week" />
+                    <KpiCard title="Monthly Revenue" value={`$${kpiData.monthly_revenue.value.toLocaleString()}`} trend={kpiData.monthly_revenue.trend} note="vs. last month" />
+                    <KpiCard title="Client Retention" value={`${(kpiData.client_retention.value * 100).toFixed(0)}%`} trend={kpiData.client_retention.trend} note="60-day cohort" />
+                    <KpiCard title="Leads Generated" value={`${kpiData.leads_generated.value}`} trend={kpiData.leads_generated.trend} note="this month" />
+                    <KpiCard title="Leads Converted" value={`${kpiData.leads_converted.value}`} trend={kpiData.leads_converted.trend} note="this month" />
+                    <KpiCard title="Top Service" value={kpiData.top_services[0]} trend={0} note="most booked" />
                 </div>
             </div>
 
             {/* AI Insights & Actions */}
             <div className={cardStyle}>
                  <h3 className="font-bold text-xl text-stone-800 mb-4" style={title3DStyle}>AI-Powered Insights & Actions</h3>
-                 {isLoading && <Loader message="Analyzing your business data..." />}
+                 {isGeneratingInsights && <Loader message="Analyzing your business data..." />}
                  {error && <div className="text-center p-4 text-orange-600 bg-orange-50 border border-orange-200 rounded-lg text-sm">{error}</div>}
                  {insights && (
                      <div className="space-y-4">
@@ -167,17 +198,17 @@ const BusinessCoach: React.FC = () => {
                  )}
                  {/* Action Buttons - These are static examples for the demo */}
                  <div className="mt-6 border-t border-pink-200 pt-4 flex flex-wrap gap-3">
-                     <button onClick={() => alert('Opening email composer in SoloPro...')} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
+                     <button onClick={() => alert('This would open the email workflow composer in Automate Your Spa Portal, targeted at a smart list of clients who haven\'t booked recently (based on your live Automate Your Spa Portal data).')} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
                         <ActionIcon />
-                        <span>Send Re-Engagement Email</span>
+                        <span>Send Re-Engagement Email via Automate Your Spa Portal</span>
                      </button>
-                      <button onClick={() => alert('Opening social scheduler in SoloPro...')} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
+                      <button onClick={() => alert(`This would open the social post scheduler in Automate Your Spa Portal, pre-filled with content related to your top service, '${kpiData.top_services[0]}'.`)} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
                         <ActionIcon />
-                        <span>Schedule Social Post</span>
+                        <span>Schedule Social Post in Automate Your Spa Portal</span>
                      </button>
-                      <button onClick={() => alert(`Creating promotion for ${data.top_services[1]}...`)} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
+                      <button onClick={() => alert(`This would create a new promotion in Automate Your Spa Portal for your service '${kpiData.top_services[1]}', allowing you to easily share it with clients.`)} className="flex items-center gap-2 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 p-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
                         <ActionIcon />
-                        <span>Create Promotion for {data.top_services[1]}</span>
+                        <span>Create Promotion via Automate Your Spa Portal</span>
                      </button>
                  </div>
             </div>

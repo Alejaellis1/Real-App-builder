@@ -8,12 +8,6 @@ interface DesignProps {
   setConfig: React.Dispatch<React.SetStateAction<DesignConfig>>;
 }
 
-const UploadIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-    </svg>
-);
-
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -22,9 +16,13 @@ const TrashIcon = () => (
 
 // FIX: Refactored Tooltip to use React.FC, which correctly handles 'children' and 'key' props,
 // resolving obscure TypeScript errors.
+// FIX: Added 'children' to TooltipProps. In modern versions of React's TypeScript types,
+// React.FC no longer implicitly adds 'children' to a component's props. It must be
+// declared explicitly to resolve type errors when passing children to the component.
 type TooltipProps = {
   text: string;
   className?: string;
+  children: React.ReactNode;
 };
 
 const Tooltip: React.FC<TooltipProps> = ({ text, children, className }) => (
@@ -344,8 +342,7 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                                     onChange={(e) => handleConfigChange('logoUrl', e.target.value)}
                                     className={inputStyle(!!errors.logoUrl)}
                                 />
-                                 <label htmlFor="logo-upload" className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
-                                    <UploadIcon />
+                                 <label htmlFor="logo-upload" className="flex-shrink-0 cursor-pointer flex items-center text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
                                     Upload
                                 </label>
                                 <input
@@ -579,8 +576,7 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                               onChange={(e) => handleConfigChange('heroImageUrl', e.target.value)}
                               className={inputStyle(!!errors.heroImageUrl)}
                             />
-                            <label htmlFor="hero-image-upload" className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
-                                <UploadIcon />
+                            <label htmlFor="hero-image-upload" className="flex-shrink-0 cursor-pointer flex items-center text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
                                 Upload
                             </label>
                             <input
@@ -677,8 +673,7 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                                     <button onClick={handleAddGalleryItem} className="flex-shrink-0 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-md hover:bg-pink-50 transition-colors">
                                         Add
                                     </button>
-                                     <label htmlFor="gallery-upload" className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
-                                        <UploadIcon />
+                                     <label htmlFor="gallery-upload" className="flex-shrink-0 cursor-pointer flex items-center text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
                                         Upload
                                     </label>
                                     <input
@@ -822,8 +817,7 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                                                 onChange={(e) => handleNavItemChange(index, 'icon', e.target.value)}
                                                 className="w-full text-sm bg-white/50 text-stone-900 rounded-lg border-stone-300 focus:ring-pink-500 focus:border-pink-500 h-[38px] shadow-[0_1px_3px_rgba(10,186,181,0.3)] px-3"
                                             />
-                                            <label htmlFor={`nav-icon-upload-${index}`} className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 text-sm font-semibold text-pink-600 bg-white/50 border border-l-0 border-stone-300 px-3 rounded-r-md hover:bg-pink-50 transition-colors h-[38px]">
-                                                <UploadIcon />
+                                            <label htmlFor={`nav-icon-upload-${index}`} className="flex-shrink-0 cursor-pointer flex items-center justify-center text-sm font-semibold text-pink-600 bg-white/50 border border-l-0 border-stone-300 px-3 rounded-r-md hover:bg-pink-50 transition-colors h-[38px]">
                                                 Upload
                                             </label>
                                             <input

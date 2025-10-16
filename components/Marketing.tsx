@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { generateMarketingContent } from '../services/geminiService';
 import { PushIcon } from './icons';
@@ -51,15 +50,15 @@ const Marketing: React.FC = () => {
   const cardStyle = "bg-white/70 p-6 rounded-xl border border-pink-200 backdrop-blur-sm";
   const title3DStyle = { textShadow: '0 1px 1px rgba(255,255,255,0.7), 0 -1px 1px rgba(0,0,0,0.15)' };
 
-  const handleSoloProClick = (action: string, content: string) => {
-    alert(`This would ${action} in your SoloPro account!\n\nContent:\n${content}`);
+  const handleAutomateYourSpaPortalClick = (action: string, content: string) => {
+    alert(`This action would '${action}' within your Automate Your Spa Portal sub-account, using the following generated content:\n\nContent:\n"${content}"`);
   };
 
-  const getSoloProAction = (type: string) => {
-    if (type.toLowerCase().includes('instagram')) return "Schedule Post in SoloPro";
-    if (type.toLowerCase().includes('email')) return "Create Email in SoloPro";
-    if (type.toLowerCase().includes('text')) return "Send Text in SoloPro";
-    return "Push to SoloPro";
+  const getAutomateYourSpaPortalAction = (type: string) => {
+    if (type.toLowerCase().includes('instagram')) return "Schedule Post in Automate Your Spa Portal";
+    if (type.toLowerCase().includes('email')) return "Create Email in Automate Your Spa Portal";
+    if (type.toLowerCase().includes('text')) return "Send Text via Automate Your Spa Portal";
+    return "Push to Automate Your Spa Portal";
   };
 
   const handleGenerate = async () => {
@@ -137,11 +136,11 @@ const Marketing: React.FC = () => {
                         </p>
                         </div>
                         <button 
-                        onClick={() => handleSoloProClick(getSoloProAction(idea.type), idea.body)}
+                        onClick={() => handleAutomateYourSpaPortalClick(getAutomateYourSpaPortalAction(idea.type), idea.body)}
                         className="flex items-center justify-center gap-2 mt-4 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors w-full sm:w-auto self-start"
                         >
                         <PushIcon />
-                        {getSoloProAction(idea.type)}
+                        {getAutomateYourSpaPortalAction(idea.type)}
                         </button>
                     </div>
                     ))}

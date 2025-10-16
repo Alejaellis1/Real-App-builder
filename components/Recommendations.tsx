@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getClientRecommendations } from '../services/geminiService';
 import Loader from './Loader';
@@ -69,12 +68,12 @@ const SuggestionCard: React.FC<{ item: Suggestion }> = ({ item }) => (
 // Main Component
 const Recommendations: React.FC = () => {
     const [formData, setFormData] = useState({
-        clientName: 'Jessica L.',
-        profession: 'Esthetician',
-        concerns: 'Combination skin, concerned with fine lines and occasional breakouts.',
-        currentService: 'Signature Facial',
-        pastServices: 'Monthly signature facials.',
-        feedback: 'Loves the results of the facials but is curious about next steps.'
+        clientName: 'Jennifer A.',
+        profession: 'Injector',
+        concerns: 'Forehead wrinkles and loss of volume in cheeks.',
+        currentService: 'Botox Consultation',
+        pastServices: 'Has had light chemical peels before, but never injectables.',
+        feedback: 'Nervous about looking "frozen", wants a natural result.'
     });
 
     const [suggestions, setSuggestions] = useState<GenerationResult | null>(null);
@@ -90,16 +89,16 @@ const Recommendations: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted to populate the form. As a demo, we'll fill it with sample intake data.`);
+        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted to populate the form. As a demo, we'll fill it with sample Medspa intake data.`);
         
         // Populate the form with data parsed from a sample intake form
         setFormData({
-             clientName: 'Sarah Miller',
-             profession: 'Esthetician',
-             concerns: "Noticing more fine lines around my eyes and my skin feels dull. I also get some hormonal breakouts on my chin.",
-             currentService: 'Brightening Facial',
-             pastServices: "A few basic facials at other spas, but nothing consistent.",
-             feedback: "Getting married in 6 months and wants her skin to be glowing for the wedding! Open to suggestions for a long-term plan."
+             clientName: 'Olivia Wilde',
+             profession: 'Medspa',
+             concerns: "Sun damage and uneven skin tone from living in a sunny climate. Wants to address texture and pigmentation.",
+             currentService: 'IPL Photofacial',
+             pastServices: "Regular facials, has tried microneedling once.",
+             feedback: "Looking for more impactful, long-term results and a comprehensive skincare plan."
         });
     };
 

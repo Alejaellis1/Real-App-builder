@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { SoloProLogo } from './icons';
 
 interface NavItem {
     name: string;
     icon: React.ReactNode;
-    isPro?: boolean;
 }
 
 interface SidebarProps {
@@ -40,15 +38,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, navItems }) 
           </React.Fragment>
         ))}
       </nav>
-      <div className="p-4 border-t border-pink-200">
-        <div className="bg-pink-50 p-4 rounded-lg text-center border border-pink-200">
-            <h4 className="font-bold text-sm text-pink-800">Upgrade to Pro</h4>
-            <p className="text-xs text-pink-600 mt-1 mb-3">Unlock all features and grow your business.</p>
-            <button className="w-full bg-pink-400 text-black text-sm font-semibold py-2 rounded-lg hover:bg-pink-500 transition-colors shadow-[0_0_10px_0] shadow-pink-400/50">
-                Upgrade
-            </button>
-        </div>
-      </div>
     </aside>
   );
 };

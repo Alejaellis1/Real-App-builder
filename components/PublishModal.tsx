@@ -3,20 +3,42 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { DesignConfig } from '../App';
 
 // --- Icons ---
-const GitHubIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>;
 const SuccessIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 const CheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
 const LinkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>;
-const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
 const RegenerateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>;
 
+const IosShareIcon = () => (
+    <div className="w-7 h-7 bg-white/60 border border-gray-300 rounded-md flex items-center justify-center inline-block ml-1.5 shadow-sm align-middle">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+    </div>
+);
 
-type GithubState = 'idle' | 'connecting' | 'connected' | 'pushing' | 'pushed';
+const AddToHomeScreenIcon = () => (
+    <div className="w-7 h-7 bg-white/60 border border-gray-300 rounded-lg flex items-center justify-center inline-block ml-1.5 shadow-sm align-middle">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-800" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+        </svg>
+    </div>
+);
+
+const AndroidMenuIcon = () => (
+    <div className="w-7 h-7 bg-white/60 border border-gray-300 rounded-md flex items-center justify-center inline-block ml-1.5 shadow-sm align-middle">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-800" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+    </div>
+);
+
 
 interface PublishModalProps {
     onClose: () => void;
     config: DesignConfig;
-    userId: string;
+    locationId: string;
     isGuest: boolean;
 }
 
@@ -31,22 +53,14 @@ const generateUniqueAppName = () => {
     return `${randomAdjective}-${randomNoun}-${randomNumber}`;
 };
 
-const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, isGuest }) => {
+const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId, isGuest }) => {
     // Publish State
     const [appName, setAppName] = useState(() => generateUniqueAppName());
     const [customDomain, setCustomDomain] = useState('');
     const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'published'>('idle');
     const [publishLog, setPublishLog] = useState<string[]>([]);
     const [liveUrl, setLiveUrl] = useState('');
-
-    // GitHub State
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    const [githubState, setGithubState] = useState<GithubState>('idle');
-    const [repoName, setRepoName] = useState('aura-aesthetics-website');
-    const [isRepoPrivate, setIsRepoPrivate] = useState(true);
-    const [githubLog, setGithubLog] = useState<string[]>([]);
-    const [repoUrl, setRepoUrl] = useState('');
-
+    const [copied, setCopied] = useState(false);
 
     const intervalRef = useRef<number | null>(null);
     const liveUrlPreview = customDomain.trim() ? `https://${customDomain.trim()}` : `https://${appName.trim() || '[app-name]'}.solopro.app`;
@@ -64,7 +78,8 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
         setLiveUrl('');
     
         try {
-            localStorage.setItem(`publishedApp_${userId}_${appName}`, JSON.stringify(config));
+            // The key is namespaced by the Automate Your Spa Portal locationId to ensure data is saved per-sub-account
+            localStorage.setItem(`publishedApp_${locationId}_${appName}`, JSON.stringify(config));
         } catch (error) {
             console.error('Error saving published app state:', error);
             setPublishLog(prev => [...prev, 'Error: Could not save app data.']);
@@ -74,7 +89,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
 
         const finalUrl = customDomain.trim()
             ? `https://${customDomain.trim()}`
-            : `${window.location.origin}${window.location.pathname}?app=${appName}&user=${userId}`;
+            : `${window.location.origin}${window.location.pathname}?app=${appName}&user=${locationId}`;
 
         const logs = [
             "Fetching latest DesignConfig...",
@@ -102,41 +117,13 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
             }
         }, 900);
     };
-
-    const handleConnectGithub = () => {
-        setGithubState('connecting');
-        setTimeout(() => {
-            setGithubState('connected');
-        }, 1500);
-    };
-
-    const handlePushToGithub = () => {
-        setGithubState('pushing');
-        setGithubLog([]);
-        setRepoUrl('');
-
-        const finalRepoUrl = `https://github.com/your-username/${repoName}`;
-
-        const logs = [
-            "Generating code from DesignConfig...",
-            "Initializing local Git repository...",
-            "Adding files to commit...",
-            `Creating ${isRepoPrivate ? 'private' : 'public'} repository '${repoName}'...`,
-            "Pushing initial commit to remote origin...",
-            "Repository created successfully!",
-        ];
-
-        let logIndex = 0;
-        intervalRef.current = window.setInterval(() => {
-            if (logIndex < logs.length) {
-                setGithubLog(prev => [...prev, logs[logIndex]]);
-                logIndex++;
-            } else {
-                clearInterval(intervalRef.current!);
-                setRepoUrl(finalRepoUrl);
-                setGithubState('pushed');
-            }
-        }, 900);
+    
+    const handleCopy = () => {
+        if (!liveUrl) return;
+        navigator.clipboard.writeText(liveUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        });
     };
     
     const CheckmarkListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -147,90 +134,6 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
             <span className="text-stone-700">{children}</span>
         </li>
     );
-
-    const renderGithubContent = () => {
-        if (githubState === 'idle') {
-            return (
-                <button 
-                    onClick={handleConnectGithub}
-                    className="w-full flex items-center justify-center gap-3 text-lg font-semibold text-white bg-stone-800 px-5 py-3 rounded-lg hover:bg-stone-900 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-stone-800/40"
-                >
-                    <GitHubIcon />
-                    Connect to GitHub
-                </button>
-            );
-        }
-        if (githubState === 'connecting') {
-            return <div className="text-center text-stone-600">Connecting to GitHub...</div>;
-        }
-        if (githubState === 'connected') {
-            return (
-                 <div className="space-y-4">
-                     <p className="text-sm text-center font-medium bg-green-100 text-green-800 p-2 rounded-md border border-green-200">
-                        ✅ Successfully connected as <span className="font-bold">your-username</span>
-                    </p>
-                    <div>
-                        <label htmlFor="repoName" className="block text-sm font-medium text-stone-600 mb-2">New Repository Name</label>
-                        <input
-                            type="text"
-                            id="repoName"
-                            value={repoName}
-                            onChange={(e) => setRepoName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                            className="w-full bg-white/50 text-stone-900 rounded-lg border-stone-300 focus:ring-pink-500 focus:border-pink-500 shadow-[0_1px_3px_rgba(10,186,181,0.3)]"
-                        />
-                    </div>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <div className="relative">
-                            <input type="checkbox" checked={isRepoPrivate} onChange={(e) => setIsRepoPrivate(e.target.checked)} className="sr-only peer" />
-                            <div className="w-12 h-6 bg-stone-300 rounded-full shadow-inner transition-colors duration-300 peer-checked:bg-pink-500"></div>
-                            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 peer-checked:translate-x-6"></div>
-                        </div>
-                        <span className="text-sm font-medium text-stone-700">Private Repository</span>
-                    </label>
-                    <button 
-                        onClick={handlePushToGithub} 
-                        disabled={!repoName.trim()} 
-                        className="w-full font-semibold text-white bg-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-900 transition-colors disabled:bg-stone-400 disabled:cursor-not-allowed"
-                    >
-                        Push to GitHub
-                    </button>
-                </div>
-            );
-        }
-        if (githubState === 'pushing' || githubState === 'pushed') {
-             return (
-                <div>
-                     <h3 className="text-lg font-bold text-stone-800 mb-3">Pushing to GitHub...</h3>
-                    {githubState === 'pushing' && (
-                        <ul className="space-y-2">
-                            {githubLog.map((log, i) => (
-                                <li key={i} className="flex items-center gap-2 text-sm text-stone-600 animate-fade-in-fast">
-                                    {i === githubLog.length - 1 ? (
-                                        <div className="w-4 h-4"><svg className="animate-spin h-4 w-4 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
-                                    ) : (
-                                        <div className="w-4 h-4 text-green-500"><CheckIcon /></div>
-                                    )}
-                                    <span>{log}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {githubState === 'pushed' && (
-                        <div className="text-center bg-green-50 border border-green-200 rounded-lg p-6">
-                            <SuccessIcon />
-                            <h4 className="font-bold text-green-800 mt-2">Repository Created!</h4>
-                            <p className="text-sm text-green-700 mt-1">Your app's code is now on GitHub:</p>
-                            <a href={repoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 mt-3 font-mono text-sm bg-white p-2 rounded-md text-pink-600 hover:underline break-all">
-                                <GitHubIcon />
-                                <span>{repoUrl.replace('https://', '')}</span>
-                            </a>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-    };
-
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -243,11 +146,10 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
                 
                 <div className="overflow-y-auto pr-2 -mr-3 flex-1">
                     <div className="space-y-6">
-                        {/* Subscription Plan */}
+                        {/* Features */}
                         <div className="bg-white/80 p-6 rounded-xl border border-pink-200">
                              <div className="flex justify-between items-baseline">
-                                <h3 className="text-lg font-bold text-stone-800">Pro Subscription</h3>
-                                <p className="text-2xl font-bold text-pink-600">$29<span className="text-sm font-medium text-stone-500">/mo</span></p>
+                                <h3 className="text-lg font-bold text-stone-800">Features</h3>
                             </div>
                             <ul className="mt-4 space-y-3 text-sm">
                                 <CheckmarkListItem><strong>One-Click Publishing:</strong> No code or terminal needed.</CheckmarkListItem>
@@ -256,23 +158,6 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
                                 <CheckmarkListItem><strong>PWA & Offline Mode:</strong> App can be installed on clients' phones.</CheckmarkListItem>
                                 <CheckmarkListItem><strong>Priority Support:</strong> Get help whenever you need it.</CheckmarkListItem>
                             </ul>
-                        </div>
-
-                         {/* Advanced: GitHub */}
-                        <div className="bg-white/80 rounded-xl border border-pink-200">
-                           <button 
-                                onClick={() => setShowAdvanced(!showAdvanced)} 
-                                className="w-full flex justify-between items-center p-4 text-lg font-bold text-stone-800"
-                           >
-                                <span>Advanced Options</span>
-                                <ChevronDownIcon className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
-                           </button>
-                           {showAdvanced && (
-                                <div className="p-5 border-t border-pink-200 animate-fade-in-fast">
-                                   <p className="text-sm text-stone-600 mb-4">Export your app's code to a GitHub repository for version control, collaboration, or custom deployment.</p>
-                                   {renderGithubContent()}
-                                </div>
-                           )}
                         </div>
                         
                         {/* Action Area */}
@@ -352,28 +237,13 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
                                 </div>
                             </div>
 
-                            {isGuest ? (
-                                <div className="mt-6 text-center bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                                  <h4 className="font-bold text-amber-800">Connect to GoHighLevel to Publish</h4>
-                                  <p className="text-sm text-amber-700 mt-1">
-                                    To publish your app and get a live URL, you need to access the builder through your GoHighLevel account.
-                                  </p>
-                                  <button
-                                    onClick={() => alert('Please access the app builder from within your GoHighLevel dashboard to publish.')}
-                                    className="mt-3 w-full text-lg font-semibold text-white bg-pink-500 px-5 py-3 rounded-lg hover:bg-pink-600 transition-colors shadow-[0_0_15px_0] shadow-pink-500/60"
-                                  >
-                                    Learn More
-                                  </button>
-                                </div>
-                            ) : (
-                                <button 
-                                    onClick={handlePublish} 
-                                    disabled={!appName.trim() || publishState !== 'idle'} 
-                                    className="mt-6 w-full text-lg font-semibold text-black bg-pink-400 px-5 py-3 rounded-lg hover:bg-pink-500 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-pink-400/60 disabled:bg-stone-300 disabled:cursor-not-allowed disabled:shadow-inner disabled:scale-100"
-                                >
-                                    {publishState === 'publishing' ? 'Publishing...' : 'Upgrade & Publish'}
-                                </button>
-                            )}
+                            <button 
+                                onClick={handlePublish} 
+                                disabled={!appName.trim() || publishState !== 'idle'} 
+                                className="mt-6 w-full text-lg font-semibold text-black bg-pink-400 px-5 py-3 rounded-lg hover:bg-pink-500 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-pink-400/60 disabled:bg-stone-300 disabled:cursor-not-allowed disabled:shadow-inner disabled:scale-100"
+                            >
+                                {publishState === 'publishing' ? 'Publishing...' : 'Publish'}
+                            </button>
                         </div>
 
                         {/* Results */}
@@ -395,14 +265,69 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
                                     </ul>
                                 )}
                                 {publishState === 'published' && (
-                                    <div className="text-center">
-                                        <SuccessIcon />
-                                        <h4 className="font-bold text-green-800 mt-2">Published!</h4>
-                                        <p className="text-sm text-green-700">Your app is now live on the web.</p>
-                                        <a href={liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 mt-3 font-mono text-sm bg-white p-2.5 rounded-md text-pink-600 hover:underline break-all">
-                                            <LinkIcon />
-                                            <span>{liveUrl}</span>
-                                        </a>
+                                    <div className="text-center animate-fade-in">
+                                        <div className="flex justify-center">
+                                            <SuccessIcon />
+                                        </div>
+                                        <h4 className="font-bold text-green-800 mt-2 text-xl">Published! Your App is Live.</h4>
+                                        
+                                        <div className="mt-4">
+                                            <label htmlFor="liveUrl" className="sr-only">Live URL</label>
+                                            <div className="flex rounded-md shadow-sm">
+                                                <input 
+                                                    type="text" 
+                                                    id="liveUrl" 
+                                                    readOnly 
+                                                    value={liveUrl} 
+                                                    className="flex-1 block w-full min-w-0 rounded-none rounded-l-md border-stone-300 bg-stone-50 text-pink-700 px-3 py-2 text-sm font-mono"
+                                                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                                                />
+                                                <button 
+                                                    onClick={handleCopy} 
+                                                    className="relative inline-flex items-center space-x-2 rounded-r-md border border-l-0 border-stone-300 bg-stone-100 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-200 transition-colors w-20 justify-center"
+                                                >
+                                                    <span>{copied ? 'Copied!' : 'Copy'}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-6 text-left">
+                                            <h5 className="font-bold text-stone-800 text-center mb-2">Add to Your Home Screen</h5>
+                                            <p className="text-sm text-center text-stone-600 mb-4">For an app-like experience, add a shortcut to your phone.</p>
+                                            
+                                            <div className="space-y-4">
+                                                {/* iOS Instructions */}
+                                                <div className="bg-pink-100/70 border border-pink-200 p-4 rounded-lg">
+                                                    <h6 className="font-semibold text-stone-800 text-center mb-3">For iPhone Users (Safari)</h6>
+                                                    <ol className="text-sm text-stone-700 space-y-3">
+                                                        <li className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                                                            <span className="flex-shrink-0 font-bold text-pink-600 bg-white border border-pink-200 rounded-full w-6 h-6 flex items-center justify-center">1</span>
+                                                            <span className="flex-1 flex items-center justify-between">First, tap the <strong>Share</strong> button {<IosShareIcon />}</span>
+                                                        </li>
+                                                        <li className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                                                            <span className="flex-shrink-0 font-bold text-pink-600 bg-white border border-pink-200 rounded-full w-6 h-6 flex items-center justify-center">2</span>
+                                                            <span className="flex-1 flex items-center justify-between">Then, tap <strong>'Add to Home Screen'</strong> {<AddToHomeScreenIcon />}</span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+
+                                                {/* Android Instructions */}
+                                                <div className="bg-green-100/70 border border-green-200 p-4 rounded-lg">
+                                                    <h6 className="font-semibold text-stone-800 text-center mb-3">For Android Users (Chrome)</h6>
+                                                    <ol className="text-sm text-stone-700 space-y-3">
+                                                        <li className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                                                            <span className="flex-shrink-0 font-bold text-green-600 bg-white border border-green-200 rounded-full w-6 h-6 flex items-center justify-center">1</span>
+                                                            <span className="flex-1 flex items-center justify-between">Tap the <strong>Menu</strong> button (three dots) {<AndroidMenuIcon />}</span>
+                                                        </li>
+                                                        <li className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                                                            <span className="flex-shrink-0 font-bold text-green-600 bg-white border border-green-200 rounded-full w-6 h-6 flex items-center justify-center">2</span>
+                                                            <span className="flex-1 flex items-center justify-between">Then, tap <strong>'Add to Home Screen'</strong> {<AddToHomeScreenIcon />}</span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 )}
                             </div>
@@ -410,6 +335,11 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, userId, is
                     </div>
                 </div>
                  <style>{`
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: scale(0.95); }
+                        to { opacity: 1; transform: scale(1); }
+                    }
+                    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
                     @keyframes fadeInFast {
                         from { opacity: 0; transform: translateY(5px); }
                         to { opacity: 1; transform: translateY(0); }

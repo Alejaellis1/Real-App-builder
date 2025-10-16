@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { analyzeClient } from '../services/geminiService';
 import { PushIcon } from './icons';
@@ -76,9 +75,9 @@ const sampleData: Record<string, { profile: any; image: string; }> = {
 
 
 const ClientAnalyzer: React.FC = () => {
-    const [clientProfile, setClientProfile] = useState(sampleData['Esthetician'].profile);
+    const [clientProfile, setClientProfile] = useState(sampleData['Injector'].profile);
     const [analysisData, setAnalysisData] = useState({ photo_type: 'skin' });
-    const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(sampleData['Esthetician'].image);
+    const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(sampleData['Injector'].image);
     const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
     const [results, setResults] = useState<AnalysisResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -127,11 +126,11 @@ const ClientAnalyzer: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted. For this demo, we'll populate the form with sample intake data from 'Sarah Miller'.`);
+        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted. For this demo, we'll populate the form with sample intake data for an 'Injector' client.`);
         
-        const estheticianData = sampleData['Esthetician'];
-        setClientProfile(estheticianData.profile);
-        setUploadedImagePreview(estheticianData.image);
+        const injectorData = sampleData['Injector'];
+        setClientProfile(injectorData.profile);
+        setUploadedImagePreview(injectorData.image);
         setUploadedImageFile(null);
         setResults(null);
     };
@@ -296,11 +295,11 @@ const ClientAnalyzer: React.FC = () => {
                                     {results.analysis.observations.map((obs, i) => <li key={i}>{obs}</li>)}
                                 </ul>
                                 <button 
-                                    onClick={() => alert("This would log all observations as a new note in the client's SoloPro file.")}
+                                    onClick={() => alert(`This would log all observations as a new note in the Automate Your Spa Portal contact file for '${clientProfile.client_name}'.\n\nNote: A real API call would require the contactId.`)}
                                     className="flex items-center justify-center gap-2 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors w-full sm:w-auto"
                                 >
                                     <PushIcon />
-                                    Log Observations in SoloPro
+                                    Log Note in Automate Your Spa Portal
                                 </button>
                             </div>
 
@@ -313,11 +312,11 @@ const ClientAnalyzer: React.FC = () => {
                                             <h4 className="font-bold text-md text-pink-800">{item.title}</h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.description}</p>
                                             <button 
-                                                onClick={() => alert(`This would create an opportunity in SoloPro for '${item.title}'`)}
+                                                onClick={() => alert(`This would create a new opportunity in the Automate Your Spa Portal pipeline for '${clientProfile.client_name}' with the title '${item.title}'.\n\nNote: A real API call would require the contactId.`)}
                                                 className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
                                             >
                                                 <PushIcon />
-                                                Create Opportunity in SoloPro
+                                                Create Opportunity in Automate Your Spa Portal
                                             </button>
                                         </div>
                                     </div>
@@ -333,11 +332,11 @@ const ClientAnalyzer: React.FC = () => {
                                             <h4 className="font-bold text-md text-pink-800">{item.title}</h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.description}</p>
                                             <button 
-                                                onClick={() => alert(`This would add a note to the client's file in SoloPro about '${item.title}'`)}
+                                                onClick={() => alert(`This would add a note to the Automate Your Spa Portal contact file for '${clientProfile.client_name}' about the recommendation: '${item.title}'.`)}
                                                 className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
                                             >
                                                 <PushIcon />
-                                                Add Note to SoloPro
+                                                Add Note to Automate Your Spa Portal
                                             </button>
                                         </div>
                                     </div>
@@ -353,11 +352,11 @@ const ClientAnalyzer: React.FC = () => {
                                             <h4 className="font-bold text-md text-pink-800">{item.service} - <span className="font-medium opacity-80">{item.date_time}</span></h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.notes}</p>
                                             <button 
-                                                onClick={() => alert(`This would open the booking calendar in SoloPro for '${item.service}'`)}
+                                                onClick={() => alert(`This would open the booking calendar in Automate Your Spa Portal, pre-filled for '${clientProfile.client_name}' and the '${item.service}' service.`)}
                                                 className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
                                             >
                                                 <PushIcon />
-                                                Schedule in SoloPro
+                                                Schedule in Automate Your Spa Portal
                                             </button>
                                         </div>
                                     </div>

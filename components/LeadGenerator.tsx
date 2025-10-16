@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { PushIcon } from './icons';
 import { generateLeads as fetchLeadsFromAI } from '../services/geminiService';
@@ -113,7 +112,7 @@ const LeadGenerator: React.FC = () => {
             URL.revokeObjectURL(link.href);
         }
         link.href = URL.createObjectURL(blob);
-        link.download = `leads_for_solopro_${providerInfo.service_type.replace(' ', '_')}.csv`;
+        link.download = `leads_for_automate_your_spa_portal_${providerInfo.service_type.replace(' ', '_')}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -153,7 +152,6 @@ const LeadGenerator: React.FC = () => {
                             Define your ideal client and let AI find potential leads in your area.
                         </p>
                     </div>
-                    <span className="text-xs font-bold bg-pink-500 text-white px-3 py-1 rounded-full uppercase whitespace-nowrap">Pro Feature</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -209,7 +207,7 @@ const LeadGenerator: React.FC = () => {
                             disabled={leads.length === 0}
                             className="text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-4 py-2 rounded-md hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Export for SoloPro
+                            Export for Automate Your Spa Portal
                         </button>
                     </div>
                     <div className="overflow-x-auto">
@@ -255,11 +253,11 @@ const LeadGenerator: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button 
-                                                    onClick={() => alert(`This would add '${lead.name}' to your contacts in SoloPro.`)}
+                                                    onClick={() => alert(`This would add '${lead.name}' as a new contact in your Automate Your Spa Portal sub-account, including all their details (phone, email, etc.).`)}
                                                     className="flex items-center gap-2 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
                                                 >
                                                     <PushIcon />
-                                                    Add to SoloPro
+                                                    Add Contact in Automate Your Spa Portal
                                                 </button>
                                             </td>
                                         </tr>

@@ -1,9 +1,9 @@
+
 import React from 'react';
 
 interface NavItem {
     name: string;
     icon: React.ReactNode;
-    isPro?: boolean;
 }
 
 interface BottomNavProps {

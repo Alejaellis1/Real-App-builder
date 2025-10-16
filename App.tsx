@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppBuilder from './components/AppBuilder';
 import AppPreview from './components/ResultDisplay';
@@ -16,20 +15,20 @@ const App: React.FC = () => {
   const [publishedAppConfig, setPublishedAppConfig] = useState<DesignConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [appNotFound, setAppNotFound] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
-  // Effect to handle routing: check for published app, GHL user, or guest
+  // Effect to handle routing: check for published app, Automate Your Spa Portal user, or guest
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const appId = urlParams.get('app');
-    const appUser = urlParams.get('user');
-    const ghlUserId = urlParams.get('ghl_user_id');
+    const appUser = urlParams.get('user'); // In Automate Your Spa Portal, this would be the locationId
+    const automateYourSpaPortalLocationId = urlParams.get('locationId');
     const GUEST_ID_KEY = 'soloProGuestId';
 
     if (appId && appUser) { // Published app view
         try {
-            // Key is now namespaced with user ID and app ID
+            // Key is now namespaced with user ID (locationId) and app ID
             const savedApp = localStorage.getItem(`publishedApp_${appUser}_${appId}`);
             if (savedApp) {
                 const parsedConfig = JSON.parse(savedApp);
@@ -43,12 +42,12 @@ const App: React.FC = () => {
             setAppNotFound(true);
         }
         setIsLoading(false);
-    } else if (ghlUserId) { // Builder view from GHL
-        setUserId(ghlUserId);
+    } else if (automateYourSpaPortalLocationId) { // Builder view from Automate Your Spa Portal
+        setLocationId(automateYourSpaPortalLocationId);
         setIsGuest(false);
         localStorage.removeItem(GUEST_ID_KEY); // Clean up guest ID
         setIsLoading(false);
-        // Clean URL for better UX, keeping ghl_user_id for reloads
+        // Clean URL for better UX, keeping locationId for reloads
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('app');
         newUrl.searchParams.delete('user');
@@ -59,7 +58,7 @@ const App: React.FC = () => {
             guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
             localStorage.setItem(GUEST_ID_KEY, guestId);
         }
-        setUserId(guestId);
+        setLocationId(guestId);
         setIsGuest(true);
         setIsLoading(false);
     }
@@ -97,9 +96,9 @@ const App: React.FC = () => {
       );
   }
   
-  // If we have a user ID (either from GHL or as a guest), render the builder.
-  if (userId) {
-    return <AppBuilder userId={userId} isGuest={isGuest} />;
+  // If we have a locationId (either from Automate Your Spa Portal or as a guest), render the builder.
+  if (locationId) {
+    return <AppBuilder locationId={locationId} isGuest={isGuest} />;
   }
   
   // Fallback, though this state should not be reachable with the new logic.
