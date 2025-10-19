@@ -300,6 +300,7 @@ const AppPreview: React.FC<AppPreviewProps> = ({ config }) => {
   return (
     <div className="w-[375px] h-[750px] bg-gradient-to-br from-gray-500 to-gray-800 rounded-[40px] shadow-2xl p-2 border-2 border-gray-900 transform scale-[0.85]">
       <div 
+        id="appContainer"
         className="w-full h-full rounded-[32px] overflow-hidden flex flex-col transition-colors duration-300"
         style={appStyle}
       >

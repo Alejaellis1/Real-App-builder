@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { DesignConfig } from '../App';
 
 // --- Icons ---
@@ -61,61 +61,90 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
     const [publishLog, setPublishLog] = useState<string[]>([]);
     const [liveUrl, setLiveUrl] = useState('');
     const [copied, setCopied] = useState(false);
-
-    const intervalRef = useRef<number | null>(null);
+    const [error, setError] = useState('');
+    
     const liveUrlPreview = customDomain.trim() ? `https://${customDomain.trim()}` : `https://${appName.trim() || '[app-name]'}.solopro.app`;
 
-
-    useEffect(() => {
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        };
-    }, []);
-    
-    const handlePublish = () => {
+    const handlePublish = async () => {
+        setError('');
         setPublishState('publishing');
-        setPublishLog([]);
-        setLiveUrl('');
-    
-        try {
-            // The key is namespaced by the Automate Your Spa Portal locationId to ensure data is saved per-sub-account
-            localStorage.setItem(`publishedApp_${locationId}_${appName}`, JSON.stringify(config));
-        } catch (error) {
-            console.error('Error saving published app state:', error);
-            setPublishLog(prev => [...prev, 'Error: Could not save app data.']);
+        const logs: string[] = [];
+        const addLog = (msg: string) => {
+            logs.push(msg);
+            setPublishLog([...logs]);
+        };
+        addLog('Preparing app content...');
+        
+        const appContainer = document.getElementById('appContainer');
+        if (!appContainer) {
+            setError('Fatal Error: Could not find app preview container to publish.');
             setPublishState('idle');
             return;
         }
 
-        const finalUrl = customDomain.trim()
-            ? `https://${customDomain.trim()}`
-            : `${window.location.origin}${window.location.pathname}?app=${appName}&user=${locationId}`;
-
-        const logs = [
-            "Fetching latest DesignConfig...",
-            "Cloning website boilerplate from repository...",
-            "Injecting user configuration into template...",
-            "Generating static files (HTML, CSS, JS)...",
-            "Connecting to cloud deployment service...",
-            "Uploading 2.1 MB static bundle...",
-            "Configuring DNS and SSL certificate...",
-        ];
-        if (customDomain.trim()) {
-            logs.push(`Verifying custom domain: ${customDomain.trim()}...`);
+        // The app uses `locationId` passed from the URL, which serves as the GHL Contact ID.
+        const subscriptionId = locationId;
+        if (!subscriptionId) {
+            setError("Error: Could not find the required user ID (locationId).");
+            setPublishState('idle');
+            return;
         }
-        logs.push("Deploying to global CDN edge network...", "App successfully deployed!");
-    
-        let logIndex = 0;
-        intervalRef.current = window.setInterval(() => {
-            if (logIndex < logs.length) {
-                setPublishLog(prev => [...prev, logs[logIndex]]);
-                logIndex++;
-            } else {
-                clearInterval(intervalRef.current!);
-                setLiveUrl(finalUrl);
+
+        // We construct a full HTML document to send to the server.
+        // This includes the subscription check script for security.
+        const appHTML = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${config.appName}</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <script>
+                    const subscriptionId = '${subscriptionId}';
+                    if (subscriptionId) {
+                        fetch('/api/check?subscriptionId=' + subscriptionId)
+                        .then(res => {
+                            if (res.redirected) window.location.href = res.url;
+                            else if (!res.ok) throw new Error('Subscription check failed');
+                        })
+                        .catch(() => {
+                            window.location.href = "/payment-required.html";
+                        });
+                    }
+                </script>
+            </head>
+            <body>
+                ${appContainer.innerHTML}
+            </body>
+            </html>
+        `;
+        
+        addLog('Content prepared. Sending to server...');
+        
+        try {
+            const response = await fetch('/api/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptionId, appHTML }),
+            });
+            
+            addLog('Server is processing the request...');
+            
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                addLog('Deployment successful!');
+                setLiveUrl(`${window.location.origin}${data.url}`);
                 setPublishState('published');
+            } else {
+                throw new Error(data.error || 'Failed to publish app.');
             }
-        }, 900);
+        } catch (err: any) {
+            console.error(err);
+            setError(`Publishing failed: ${err.message}`);
+            setPublishState('idle');
+        }
     };
     
     const handleCopy = () => {
@@ -236,6 +265,12 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                                     <span>{liveUrlPreview}</span>
                                 </div>
                             </div>
+
+                            {error && (
+                                <div className="bg-red-100 border border-red-300 text-red-800 text-sm p-3 rounded-lg mt-4">
+                                    <strong>Error:</strong> {error}
+                                </div>
+                            )}
 
                             <button 
                                 onClick={handlePublish} 

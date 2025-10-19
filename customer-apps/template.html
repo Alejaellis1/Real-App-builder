@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer App</title>
+    <script>
+        const subscriptionId = new URLSearchParams(window.location.search).get('id');
+        fetch(`/api/check?subscriptionId=${subscriptionId}`)
+            .then(res => {
+                if (res.redirected) window.location.href = res.url;
+            })
+            .catch(() => {
+                window.location.href = "/payment-required.html";
+            });
+    </script>
+</head>
+<body>
+    <!-- This is the template for customer apps. The content will be populated by the publish script. -->
+    <h1>Welcome to your app!</h1>
+</body>
+</html>
