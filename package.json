@@ -1,15 +1,28 @@
 {
-  "name": "solopro-serverless-functions",
+  "name": "solopro-ai-app-builder",
+  "private": true,
   "version": "1.0.0",
-  "description": "Serverless functions for the SoloPro AI App Builder",
-  "main": "api/publish.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.43.4",
-    "papaparse": "^5.4.1"
+    "papaparse": "^5.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
