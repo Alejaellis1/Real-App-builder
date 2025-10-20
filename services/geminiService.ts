@@ -45,7 +45,8 @@ export async function getClientRecommendations(formData: any): Promise<any> {
                 type: Type.OBJECT, 
                 properties: { 
                     upsells: { 
-                        type: Type.ARRAY, 
+                        type: Type.ARRAY,
+                        description: "A list of 3 potential upsells for the client's current session.",
                         items: { 
                             type: Type.OBJECT, 
                             properties: { 
@@ -56,7 +57,8 @@ export async function getClientRecommendations(formData: any): Promise<any> {
                         } 
                     }, 
                     recommendations: { 
-                        type: Type.ARRAY, 
+                        type: Type.ARRAY,
+                        description: "A list of 3 personalized recommendations for the client's future visits or at-home care.",
                         items: { 
                             type: Type.OBJECT, 
                             properties: { 
