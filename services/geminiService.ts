@@ -1,12 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
 
-// --- PRODUCTION SECURITY NOTE ---
-// In a real-world application, you MUST NOT call the Gemini API directly from the frontend.
-// Your API key would be exposed in the browser.
-//
-// THE CORRECT ARCHITECTURE:
-// Route all API calls through a secure backend proxy (e.g., a serverless function) that adds your
-// API key on the server-side. For this demo, we are calling the API directly from the client for simplicity.
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+
+// --- PRODUCTION ARCHITECTURE NOTE ---
+// For enhanced security, API calls should be routed through a backend proxy
+// that injects the API key server-side. This prevents exposing the key in the browser.
 
 /**
  * Safely parses a JSON string.
@@ -16,7 +13,9 @@ import { GoogleGenAI, Type } from "@google/genai";
  */
 const safeJsonParse = (jsonString: string): any => {
     try {
-        return JSON.parse(jsonString);
+        // First, trim any whitespace or potential markdown code fences
+        const cleanedString = jsonString.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        return JSON.parse(cleanedString);
     } catch (error) {
         console.error("Failed to parse JSON response from backend:", jsonString);
         throw new Error("The API returned a response that was not valid JSON.");
@@ -73,10 +72,78 @@ export async function analyzeClient(profile: any, imageFile: File): Promise<any>
  */
 export async function generateMarketingContent(prompt: string, contentType: string): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const fullPrompt = `You are a marketing expert for a solo service provider. Generate marketing content for: "${prompt}". The format is a "${contentType}". Provide a JSON response with an array of objects, each containing 'type', 'headline', and 'body'.`;
+    // FIX: Simplified the prompt to focus on the creative task, relying on the schema for structure.
+    // This prevents the AI from getting confused and generating a malformed, long string.
+    const fullPrompt = `You are a marketing expert for a solo service provider. Generate 3 distinct marketing content ideas for "${prompt}". The content should be in the style of a "${contentType}".`;
+    
     const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash", contents: fullPrompt,
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, headline: { type: Type.STRING }, body: { type: Type.STRING }, } } }, thinkingConfig: { thinkingBudget: 0 }, }
+        model: "gemini-2.5-flash", 
+        contents: fullPrompt,
+        // FIX: Added descriptive text to the schema properties to give the AI clearer instructions
+        // on what content belongs in each field, resolving the JSON parsing error and improving speed.
+        config: { 
+            responseMimeType: "application/json", 
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { 
+                            type: Type.STRING,
+                            description: `The specific type of content generated, matching the request (e.g., '${contentType}').`
+                        },
+                        headline: { 
+                            type: Type.STRING,
+                            description: 'A catchy headline or subject line for the content.'
+                        },
+                        body: { 
+                            type: Type.STRING,
+                            description: 'The main body of the marketing content, including hashtags if relevant.'
+                        },
+                    }
+                }
+            }
+        }
+    });
+    return safeJsonParse(aiResponse.text);
+}
+
+// FIX: Added the missing `generateLeads` function to resolve the import error in `LeadGenerator.tsx`.
+/**
+ * Generates B2B partnership leads based on provider's profile.
+ */
+export async function generateLeads(providerInfo: any): Promise<any> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prompt = `
+        You are an expert B2B lead generation specialist.
+        Find 5 partnership leads for a ${providerInfo.service_type} professional in ${providerInfo.location} (within a ${providerInfo.target_radius} mile radius).
+        Ideal partners are: "${providerInfo.lead_preferences}".
+    `;
+    const aiResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash", 
+        contents: prompt,
+        config: { 
+            responseMimeType: "application/json", 
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        company_name: { type: Type.STRING, description: "The name of the potential partner company." },
+                        website: { type: Type.STRING, description: "The official website URL of the company." },
+                        contact_person: { type: Type.STRING, description: "The name of a relevant decision-maker at the company." },
+                        role: { type: Type.STRING, description: "The job title or role of the contact person." },
+                        email: { type: Type.STRING, description: "The professional email address for the contact person." },
+                        phone: { type: Type.STRING, description: "The business phone number for the company or contact." },
+                        linkedin_profile: { type: Type.STRING, description: "The URL for the contact person's or company's LinkedIn profile." },
+                        rationale: { type: Type.STRING, description: "A brief explanation of why this company is a good partnership fit." },
+                        verification_status: { type: Type.STRING, description: "The confidence level of the contact info ('Verified' or 'Likely')." },
+                        interest_score: { type: Type.NUMBER, description: "A score from 0-100 indicating the potential partnership value." }
+                    },
+                    required: ["company_name", "website", "contact_person", "role", "email", "phone", "linkedin_profile", "rationale", "verification_status", "interest_score"]
+                }
+            }
+        }
     });
     return safeJsonParse(aiResponse.text);
 }
@@ -85,26 +152,124 @@ export async function generateMarketingContent(prompt: string, contentType: stri
 /**
  * Generates business insights based on performance data.
  */
-export async function getBusinessInsights(data: any): Promise<string[]> {
+export async function getBusinessInsights(): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `You are a business coach. Analyze this data: Weekly Bookings: ${data.weekly_bookings.value} (trend: ${data.weekly_bookings.trend * 100}%), Monthly Revenue: $${data.monthly_revenue.value} (trend: ${data.monthly_revenue.trend * 100}%), Retention: ${data.client_retention.value * 100}%, Top Service: ${data.top_services[0]}. Provide an array of 3 actionable, concise insights.`;
+    const prompt = `You are an expert cosmetology business coach with deep knowledge of the beauty industry (including lash, skincare, hair, and aesthetic services) and modern business systems (marketing, automation, client retention, and scaling). Your job is to help beauty professionals achieve their goals by combining beauty industry expertise with business strategy. Always provide advice that is specific, practical, encouraging, and motivational.
+
+Provide a generic but inspiring coaching session for a solo beauty provider. The session should be conversational and encouraging. Structure your response as a JSON object. Don't use any specific numbers or metrics, but focus on common goals and challenges for beauty professionals, like client retention, social media marketing, and pricing strategies.`;
+
     const aiResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash", contents: prompt,
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } } }
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    greeting: { type: Type.STRING, description: "A warm, personal greeting." },
+                    celebration: { type: Type.STRING, description: "A specific point of praise based on a common positive achievement for a beauty pro." },
+                    opportunity: { type: Type.STRING, description: "A gentle and constructive observation about a common area for improvement." },
+                    action_plan: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                title: { type: Type.STRING, description: "A catchy title for the action step." },
+                                description: { type: Type.STRING, description: "A detailed, practical description of the action step." }
+                            },
+                            required: ["title", "description"]
+                        }
+                    },
+                    motivation: { type: Type.STRING, description: "A final, encouraging closing statement." }
+                },
+                required: ["greeting", "celebration", "opportunity", "action_plan", "motivation"]
+            }
+        }
     });
     return safeJsonParse(aiResponse.text);
 }
 
-
 /**
- * Generates B2B partnership leads for a service provider.
+ * Generates a blog post outline based on a topic.
  */
-export async function generateLeads(providerInfo: any): Promise<any> {
+export async function generateBlogPost(topic: string): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `You are a business development expert. My profile: Service: ${providerInfo.service_type}, Location: ${providerInfo.location}, Ideal Client: ${providerInfo.lead_preferences}. Find 5 fictional but realistic B2B leads in a ${providerInfo.target_radius}-mile radius. For each, provide: name, phone, email, social_media (array of objects), profile_description, rationale, interest_score (70-100), and source.`;
+    const prompt = `
+        You are an expert content writer and SEO specialist for the beauty and wellness industry.
+        Generate a comprehensive, engaging, and SEO-friendly blog post outline for the topic: "${topic}".
+        The outline should be structured to be easily readable and informative for a typical client.
+        Include a catchy title, a brief introduction, three main body sections with bullet points, and a concluding paragraph.
+    `;
+
     const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash", contents: prompt,
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, phone: { type: Type.STRING }, email: { type: Type.STRING }, social_media: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { platform: { type: Type.STRING }, handle: { type: Type.STRING } } } }, profile_description: { type: Type.STRING }, rationale: { type: Type.STRING }, interest_score: { type: Type.INTEGER }, source: { type: Type.STRING } }, required: ["name", "phone", "email", "social_media", "profile_description", "rationale", "interest_score", "source"] } } }
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    title: {
+                        type: Type.STRING,
+                        description: "A catchy, SEO-friendly title for the blog post."
+                    },
+                    introduction: {
+                        type: Type.STRING,
+                        description: "A brief introductory paragraph that hooks the reader and states the post's purpose."
+                    },
+                    sections: {
+                        type: Type.ARRAY,
+                        description: "An array of the main sections of the blog post. Should contain 3-4 sections.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                heading: {
+                                    type: Type.STRING,
+                                    description: "The heading for this section of the blog post."
+                                },
+                                points: {
+                                    type: Type.ARRAY,
+                                    description: "An array of bullet points or key ideas to be discussed in this section.",
+                                    items: {
+                                        type: Type.STRING
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    conclusion: {
+                        type: Type.STRING,
+                        description: "A concluding paragraph that summarizes the key points and includes a call to action (e.g., 'Book a consultation today!')."
+                    }
+                },
+                required: ["title", "introduction", "sections", "conclusion"]
+            }
+        }
     });
     return safeJsonParse(aiResponse.text);
+}
+
+/**
+ * Generates a stock image for a featured service based on a prompt.
+ */
+export async function generateFeaturedServiceImage(prompt: string): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [{ text: prompt }],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            return `data:image/png;base64,${base64ImageBytes}`;
+        }
+    }
+
+    throw new Error("No image was generated by the API.");
 }

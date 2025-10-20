@@ -88,8 +88,6 @@ const Recommendations: React.FC = () => {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted to populate the form. As a demo, we'll fill it with sample Medspa intake data.`);
         
         // Populate the form with data parsed from a sample intake form
         setFormData({

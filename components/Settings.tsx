@@ -29,9 +29,9 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, className }) => (
 
 
 const Settings: React.FC<SettingsProps> = ({ config, setConfig, builderTheme, setBuilderTheme }) => {
-  const [errors, setErrors] = useState<{ aboutText?: string; contactInfo?: string }>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof DesignConfig, string>>>({});
 
-  const handleSettingsChange = (field: 'aboutText' | 'contactInfo', value: string) => {
+  const handleSettingsChange = (field: 'aboutText' | 'contactInfo' | 'facebookUrl' | 'instagramUrl' | 'tiktokUrl', value: string) => {
     setConfig(prev => ({ ...prev, [field]: value }));
 
     let error: string | null = null;
@@ -40,6 +40,15 @@ const Settings: React.FC<SettingsProps> = ({ config, setConfig, builderTheme, se
     }
     if (field === 'contactInfo' && value.length > 200) {
         error = 'Contact info cannot exceed 200 characters.';
+    }
+    if (['facebookUrl', 'instagramUrl', 'tiktokUrl'].includes(field)) {
+        if (value && !/^(https?:\/\/)/i.test(value)) {
+             try {
+                new URL(value);
+            } catch {
+                error = 'Please enter a valid URL (e.g., https://...).';
+            }
+        }
     }
 
 
@@ -115,6 +124,51 @@ const Settings: React.FC<SettingsProps> = ({ config, setConfig, builderTheme, se
                     {errors.contactInfo && <p className="text-xs text-red-600 mt-1">{errors.contactInfo}</p>}
                 </div>
             </Tooltip>
+            
+            <div className="border-t border-pink-200/60 pt-6 space-y-6">
+                 <Tooltip text="Enter the full URL to your business's Facebook page.">
+                    <div>
+                        <label htmlFor="facebookUrl" className={labelStyle}>Facebook Profile URL</label>
+                        <input
+                            type="text"
+                            id="facebookUrl"
+                            value={config.facebookUrl}
+                            onChange={(e) => handleSettingsChange('facebookUrl', e.target.value)}
+                            className={inputStyle(!!errors.facebookUrl)}
+                            placeholder="https://facebook.com/your-page"
+                        />
+                        {errors.facebookUrl && <p className="text-xs text-red-600 mt-1">{errors.facebookUrl}</p>}
+                    </div>
+                </Tooltip>
+                 <Tooltip text="Enter the full URL to your business's Instagram profile.">
+                    <div>
+                        <label htmlFor="instagramUrl" className={labelStyle}>Instagram Profile URL</label>
+                        <input
+                            type="text"
+                            id="instagramUrl"
+                            value={config.instagramUrl}
+                            onChange={(e) => handleSettingsChange('instagramUrl', e.target.value)}
+                            className={inputStyle(!!errors.instagramUrl)}
+                            placeholder="https://instagram.com/your-profile"
+                        />
+                        {errors.instagramUrl && <p className="text-xs text-red-600 mt-1">{errors.instagramUrl}</p>}
+                    </div>
+                </Tooltip>
+                 <Tooltip text="Enter the full URL to your business's TikTok profile.">
+                    <div>
+                        <label htmlFor="tiktokUrl" className={labelStyle}>TikTok Profile URL</label>
+                        <input
+                            type="text"
+                            id="tiktokUrl"
+                            value={config.tiktokUrl}
+                            onChange={(e) => handleSettingsChange('tiktokUrl', e.target.value)}
+                            className={inputStyle(!!errors.tiktokUrl)}
+                            placeholder="https://tiktok.com/@your-profile"
+                        />
+                        {errors.tiktokUrl && <p className="text-xs text-red-600 mt-1">{errors.tiktokUrl}</p>}
+                    </div>
+                </Tooltip>
+            </div>
         </div>
       </div>
 

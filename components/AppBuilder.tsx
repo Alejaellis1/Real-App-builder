@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
@@ -6,12 +7,10 @@ import Design from './PromptDisplay';
 import Settings from './Settings';
 import Recommendations from './Recommendations';
 import ClientAnalyzer from './ClientAnalyzer';
-import LeadGenerator from './LeadGenerator';
 import BusinessCoach from './BusinessCoach';
-import Payments from './Payments';
 import PublishModal from './PublishModal';
 import AppPreview from './ResultDisplay';
-import { RocketIcon, DesignIcon, AnalyzerIcon, RecommendationsIcon, MarketingIcon, SettingsIcon, LeadGenIcon, CoachIcon, PaymentsIcon, UndoIcon, RedoIcon } from './icons';
+import { RocketIcon, DesignIcon, AnalyzerIcon, RecommendationsIcon, MarketingIcon, SettingsIcon, CoachIcon, UndoIcon, RedoIcon } from './icons';
 
 // FIX: Broke circular dependency with App.tsx by defining all shared types here as the single source of truth.
 // This resolves multiple "Type alias circularly references itself" errors in both files.
@@ -20,6 +19,8 @@ export type GalleryItemType = 'image' | 'video';
 export interface GalleryItem {
     src: string;
     type: GalleryItemType;
+    startTime?: number;
+    endTime?: number;
 }
 export interface Testimonial {
     author: string;
@@ -65,6 +66,15 @@ export interface DesignConfig {
   showBookingLink: boolean;
   aboutText: string;
   contactInfo: string;
+  featuredServiceTitle: string;
+  showFeaturedService: boolean;
+  featuredServiceImageUrl: string;
+  featuredServiceName: string;
+  featuredServicePrice: string;
+  featuredServiceDescription: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  tiktokUrl: string;
 }
 
 interface AppBuilderProps {
@@ -77,9 +87,7 @@ const navItems = [
   { name: 'Analyzer', icon: <AnalyzerIcon /> },
   { name: 'Recommendations', icon: <RecommendationsIcon /> },
   { name: 'Marketing', icon: <MarketingIcon /> },
-  { name: 'Lead Gen', icon: <LeadGenIcon /> },
   { name: 'Coach', icon: <CoachIcon /> },
-  { name: 'Payments', icon: <PaymentsIcon /> },
   { name: 'Settings', icon: <SettingsIcon /> },
 ];
 
@@ -131,6 +139,15 @@ const initialDesignConfig: DesignConfig = {
   showBookingLink: true,
   aboutText: 'Aura Aesthetics is a boutique studio dedicated to providing personalized aesthetic treatments that enhance your natural beauty and boost your confidence.',
   contactInfo: '123 Glamour Ave, Suite 101\nBeverly Hills, CA 90210\n(310) 555-0123',
+  featuredServiceTitle: 'Our Signature Treatment',
+  showFeaturedService: true,
+  featuredServiceImageUrl: 'https://images.pexels.com/photos/7047464/pexels-photo-7047464.jpeg?auto=compress&cs=tinysrgb&w=600',
+  featuredServiceName: '24K Gold Hydro-Lifting Facial',
+  featuredServicePrice: '$150',
+  featuredServiceDescription: 'Experience pure luxury with our 24K Gold Hydro-Lifting Facial. This treatment uses gold-infused serums to lift, firm, and illuminate your skin, leaving you with a radiant, youthful glow.',
+  facebookUrl: '',
+  instagramUrl: '',
+  tiktokUrl: '',
 };
 
 type SaveStatus = 'unsaved' | 'saving' | 'saved';
@@ -307,12 +324,8 @@ const AppBuilder: React.FC<AppBuilderProps> = ({ locationId, isGuest }) => {
         return <Recommendations />;
       case 'Analyzer':
         return <ClientAnalyzer />;
-      case 'Lead Gen':
-        return <LeadGenerator />;
       case 'Coach':
         return <BusinessCoach />;
-      case 'Payments':
-        return <Payments />;
       default:
         return <Design config={designConfig} setConfig={setDesignConfig} />;
     }

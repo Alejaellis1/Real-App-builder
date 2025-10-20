@@ -125,8 +125,6 @@ const ClientAnalyzer: React.FC = () => {
     const handleIntakeFormUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        alert(`File "${file.name}" uploaded. In a real app, its content would be extracted. For this demo, we'll populate the form with sample intake data for an 'Injector' client.`);
         
         const injectorData = sampleData['Injector'];
         setClientProfile(injectorData.profile);
@@ -294,13 +292,6 @@ const ClientAnalyzer: React.FC = () => {
                                 <ul className="list-disc list-inside space-y-2 text-stone-700 text-sm mb-4">
                                     {results.analysis.observations.map((obs, i) => <li key={i}>{obs}</li>)}
                                 </ul>
-                                <button 
-                                    onClick={() => alert(`This would log all observations as a new note in the Automate Your Spa Portal contact file for '${clientProfile.client_name}'.\n\nNote: A real API call would require the contactId.`)}
-                                    className="flex items-center justify-center gap-2 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors w-full sm:w-auto"
-                                >
-                                    <PushIcon />
-                                    Log Note in Automate Your Spa Portal
-                                </button>
                             </div>
 
                             <div className={cardStyle}>
@@ -311,13 +302,6 @@ const ClientAnalyzer: React.FC = () => {
                                         <div className="flex-1">
                                             <h4 className="font-bold text-md text-pink-800">{item.title}</h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.description}</p>
-                                            <button 
-                                                onClick={() => alert(`This would create a new opportunity in the Automate Your Spa Portal pipeline for '${clientProfile.client_name}' with the title '${item.title}'.\n\nNote: A real API call would require the contactId.`)}
-                                                className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
-                                            >
-                                                <PushIcon />
-                                                Create Opportunity in Automate Your Spa Portal
-                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -331,13 +315,6 @@ const ClientAnalyzer: React.FC = () => {
                                         <div className="flex-1">
                                             <h4 className="font-bold text-md text-pink-800">{item.title}</h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.description}</p>
-                                            <button 
-                                                onClick={() => alert(`This would add a note to the Automate Your Spa Portal contact file for '${clientProfile.client_name}' about the recommendation: '${item.title}'.`)}
-                                                className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
-                                            >
-                                                <PushIcon />
-                                                Add Note to Automate Your Spa Portal
-                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -351,13 +328,6 @@ const ClientAnalyzer: React.FC = () => {
                                         <div className="flex-1">
                                             <h4 className="font-bold text-md text-pink-800">{item.service} - <span className="font-medium opacity-80">{item.date_time}</span></h4>
                                             <p className="text-sm text-stone-700 mt-1">{item.notes}</p>
-                                            <button 
-                                                onClick={() => alert(`This would open the booking calendar in Automate Your Spa Portal, pre-filled for '${clientProfile.client_name}' and the '${item.service}' service.`)}
-                                                className="flex items-center gap-2 mt-3 text-xs font-semibold text-pink-700 bg-white/80 border border-pink-200 px-3 py-1.5 rounded-md hover:bg-pink-100 transition-colors"
-                                            >
-                                                <PushIcon />
-                                                Schedule in Automate Your Spa Portal
-                                            </button>
                                         </div>
                                     </div>
                                 ))}

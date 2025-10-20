@@ -1,7 +1,8 @@
-
 import React, {useState, useRef, useEffect} from 'react';
 import AppPreview from './ResultDisplay';
-import type { DesignConfig, ContentType, GalleryItemType, NavItem } from '../App';
+import type { DesignConfig, ContentType, GalleryItemType, NavItem, GalleryItem } from '../App';
+import MediaEditorModal from './MediaEditorModal';
+import { generateFeaturedServiceImage } from '../services/geminiService';
 
 interface DesignProps {
   config: DesignConfig;
@@ -11,6 +12,12 @@ interface DesignProps {
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+);
+
+const SparkleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.25 21.75l-.648-1.178a2.625 2.625 0 00-1.7-1.7L12.75 18l1.178-.648a2.625 2.625 0 001.7-1.7L16.25 15l.648 1.178a2.625 2.625 0 001.7 1.7L20.25 18l-1.178.648a2.625 2.625 0 00-1.7 1.7z" />
     </svg>
 );
 
@@ -96,6 +103,9 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
     const [newGalleryUrl, setNewGalleryUrl] = useState('');
     const [newTestimonial, setNewTestimonial] = useState({ author: '', text: '' });
     const [errors, setErrors] = useState<Partial<Record<keyof DesignConfig, string>>>({});
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [fileToEdit, setFileToEdit] = useState<File | null>(null);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
     const handleConfigChange = (field: keyof Omit<DesignConfig, 'navItems' | 'galleryItems' | 'testimonials'>, value: string) => {
         // Update the config state immediately for a responsive UI
@@ -113,11 +123,15 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
             galleryPageTitle: 50,
             blogPageTitle: 50,
             contactPageTitle: 50,
+            featuredServiceTitle: 50,
+            featuredServiceName: 50,
+            featuredServicePrice: 20,
+            featuredServiceDescription: 200,
         };
     
         if (field in textLimits && value.length > textLimits[field]!) {
             error = `Cannot exceed ${textLimits[field]} characters.`;
-        } else if (['logoUrl', 'heroImageUrl', 'bookingLink'].includes(field)) {
+        } else if (['logoUrl', 'heroImageUrl', 'bookingLink', 'featuredServiceImageUrl'].includes(field)) {
             if (value && !/^(https?:\/\/|data:image)/i.test(value)) {
                 try {
                     new URL(value); // This will throw an error if the URL is invalid
@@ -186,6 +200,35 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
         reader.readAsDataURL(file);
     };
 
+    const handleGalleryFileUpload = (e: React.ChangeEvent<HTMLInputElement>, allowedTypes: string[], maxSizeMB: number) => {
+        const file = e.target.files?.[0];
+        // FIX: The `target` variable was not defined, causing a reference error.
+        // It has been defined by extracting it from the event object `e`, similar
+        // to how it is handled in the `handleFileUpload` function.
+        const target = e.target;
+        if (target) {
+            target.value = '';
+        }
+        if (!file) return;
+        if (!allowedTypes.includes(file.type)) {
+            alert(`Invalid file type. Please upload one of: ${allowedTypes.join(', ')}`);
+            return;
+        }
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            alert(`File is too large. Maximum size is ${maxSizeMB}MB.`);
+            return;
+        }
+        setFileToEdit(file);
+        setIsEditorOpen(true);
+    };
+
+    const handleSaveEditedMedia = (newItem: GalleryItem) => {
+        setConfig(prev => ({ ...prev, galleryItems: [...prev.galleryItems, newItem] }));
+        setIsEditorOpen(false);
+        setFileToEdit(null);
+    };
+
+
     const getUrlContentType = (url: string): GalleryItemType => {
         const lowerUrl = url.toLowerCase();
         if (lowerUrl.startsWith('data:video')) return 'video';
@@ -246,9 +289,23 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
         }
     };
 
-    type ToggleField = 'showServices' | 'showGallery' | 'showTestimonials' | 'showBlog' | 'showContact' | 'showBookingLink';
+    type ToggleField = 'showServices' | 'showGallery' | 'showTestimonials' | 'showBlog' | 'showContact' | 'showBookingLink' | 'showFeaturedService';
     const handleToggleChange = (field: ToggleField, value: boolean) => {
         setConfig(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleGenerateImage = async () => {
+        setIsGeneratingImage(true);
+        try {
+            const prompt = "A luxurious 24k gold facial mask on a woman's face in a serene spa setting.";
+            const imageUrl = await generateFeaturedServiceImage(prompt);
+            handleConfigChange('featuredServiceImageUrl', imageUrl);
+        } catch (error) {
+            console.error("Failed to generate image:", error);
+            alert("Sorry, the AI couldn't generate an image at the moment. Please try again.");
+        } finally {
+            setIsGeneratingImage(false);
+        }
     };
 
     const title3DStyle = { textShadow: '0 1px 1px rgba(255,255,255,0.7), 0 -1px 1px rgba(0,0,0,0.15)' };
@@ -308,6 +365,7 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
 
 
   return (
+    <>
     <div className="flex flex-col-reverse lg:flex-row gap-8">
         {/* --- Left Column: Customization Panel --- */}
         <div className="lg:w-3/5 space-y-8">
@@ -596,14 +654,115 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                     </div>
                 </Tooltip>
             </div>
+
+            {config.showFeaturedService && (
+                <div className={cardStyle}>
+                    <h3 className="font-bold text-xl mb-4 text-stone-800" style={title3DStyle}>Featured Service Card</h3>
+                    <div className="space-y-6">
+                        <Tooltip text="The main image for your featured service.">
+                            <div>
+                                <label htmlFor="featuredServiceImageUrl" className={labelStyle}>Image (URL or Upload)</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      id="featuredServiceImageUrl"
+                                      value={config.featuredServiceImageUrl}
+                                      onChange={(e) => handleConfigChange('featuredServiceImageUrl', e.target.value)}
+                                      className={inputStyle(!!errors.featuredServiceImageUrl)}
+                                    />
+                                    <button 
+                                        onClick={handleGenerateImage} 
+                                        disabled={isGeneratingImage}
+                                        className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                    >
+                                        {isGeneratingImage ? 'Generating...' : <><SparkleIcon /> AI</>}
+                                    </button>
+                                    <label htmlFor="featured-service-image-upload" className="flex-shrink-0 cursor-pointer flex items-center text-sm font-semibold text-pink-600 bg-white/80 border border-pink-200 px-3 py-2 rounded-lg hover:bg-pink-50 transition-colors">
+                                        Upload
+                                    </label>
+                                    <input
+                                        id="featured-service-image-upload"
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/png,image/jpeg"
+                                        onChange={(e) => handleFileUpload(
+                                            e,
+                                            (dataUrl) => handleConfigChange('featuredServiceImageUrl', dataUrl),
+                                            ['image/png', 'image/jpeg'],
+                                            5
+                                        )}
+                                    />
+                                </div>
+                                {errors.featuredServiceImageUrl && <p className="text-xs text-red-600 mt-1">{errors.featuredServiceImageUrl}</p>}
+                            </div>
+                        </Tooltip>
+
+                        <Tooltip text="The name of your featured service.">
+                             <div>
+                                <div className="flex justify-between items-baseline">
+                                    <label htmlFor="featuredServiceName" className={labelStyle}>Service Name</label>
+                                    <span className={`text-xs ${config.featuredServiceName.length > 50 ? 'text-red-600' : 'text-stone-500'}`}>{config.featuredServiceName.length} / 50</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    id="featuredServiceName"
+                                    value={config.featuredServiceName}
+                                    onChange={(e) => handleConfigChange('featuredServiceName', e.target.value)}
+                                    maxLength={50}
+                                    className={inputStyle(!!errors.featuredServiceName)}
+                                />
+                                {errors.featuredServiceName && <p className="text-xs text-red-600 mt-1">{errors.featuredServiceName}</p>}
+                            </div>
+                        </Tooltip>
+
+                        <Tooltip text="The price for this service.">
+                             <div>
+                                <div className="flex justify-between items-baseline">
+                                    <label htmlFor="featuredServicePrice" className={labelStyle}>Price</label>
+                                    <span className={`text-xs ${config.featuredServicePrice.length > 20 ? 'text-red-600' : 'text-stone-500'}`}>{config.featuredServicePrice.length} / 20</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    id="featuredServicePrice"
+                                    value={config.featuredServicePrice}
+                                    onChange={(e) => handleConfigChange('featuredServicePrice', e.target.value)}
+                                    maxLength={20}
+                                    className={inputStyle(!!errors.featuredServicePrice)}
+                                    placeholder="e.g., $150 or Starting at $99"
+                                />
+                                {errors.featuredServicePrice && <p className="text-xs text-red-600 mt-1">{errors.featuredServicePrice}</p>}
+                            </div>
+                        </Tooltip>
+
+                        <Tooltip text="A short, compelling description of the featured service.">
+                             <div>
+                                <div className="flex justify-between items-baseline">
+                                    <label htmlFor="featuredServiceDescription" className={labelStyle}>Description</label>
+                                    <span className={`text-xs ${config.featuredServiceDescription.length > 200 ? 'text-red-600' : 'text-stone-500'}`}>{config.featuredServiceDescription.length} / 200</span>
+                                </div>
+                                <textarea
+                                    id="featuredServiceDescription"
+                                    rows={3}
+                                    value={config.featuredServiceDescription}
+                                    onChange={(e) => handleConfigChange('featuredServiceDescription', e.target.value)}
+                                    maxLength={200}
+                                    className={inputStyle(!!errors.featuredServiceDescription)}
+                                />
+                                {errors.featuredServiceDescription && <p className="text-xs text-red-600 mt-1">{errors.featuredServiceDescription}</p>}
+                            </div>
+                        </Tooltip>
+                    </div>
+                </div>
+            )}
             
             <div className={cardStyle}>
                 <h3 className="font-bold text-xl mb-4 text-stone-800" style={title3DStyle}>Section Titles</h3>
                 <p className="text-xs text-stone-500 mb-4 -mt-2">Customize the titles for different sections of your app.</p>
                 <div className="space-y-6">
-                {(['heroTitle', 'homeTestimonialsTitle', 'homeGalleryTitle', 'homeBlogTitle', 'servicesPageTitle', 'galleryPageTitle', 'blogPageTitle', 'contactPageTitle'] as const).map(field => {
+                {(['heroTitle', 'featuredServiceTitle', 'homeTestimonialsTitle', 'homeGalleryTitle', 'homeBlogTitle', 'servicesPageTitle', 'galleryPageTitle', 'blogPageTitle', 'contactPageTitle'] as const).map(field => {
                     const labels: Record<typeof field, string> = {
                         heroTitle: 'Hero Title',
+                        featuredServiceTitle: 'Featured Service Title',
                         homeTestimonialsTitle: 'Home - Testimonials Title',
                         homeGalleryTitle: 'Home - Gallery Title',
                         homeBlogTitle: 'Home - Blog Title',
@@ -681,13 +840,8 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                                         type="file"
                                         className="hidden"
                                         accept="image/png,image/jpeg,video/mp4,video/webm,video/quicktime"
-                                        onChange={(e) => handleFileUpload(
+                                        onChange={(e) => handleGalleryFileUpload(
                                             e,
-                                            (dataUrl, fileType) => {
-                                                const type: GalleryItemType = fileType.startsWith('image/') ? 'image' : 'video';
-                                                const newItem = { src: dataUrl, type };
-                                                setConfig(prev => ({ ...prev, galleryItems: [...prev.galleryItems, newItem] }));
-                                            },
                                             ['image/png', 'image/jpeg', 'video/mp4', 'video/webm', 'video/quicktime'],
                                             10
                                         )}
@@ -759,6 +913,11 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
                         field="showBookingLink"
                         label="Show 'Book Now' Button"
                         description="Display a booking button on the home and services pages."
+                    />
+                     <Toggle 
+                        field="showFeaturedService"
+                        label="Show Featured Service"
+                        description="Display a special featured service on the home page."
                     />
                     <Toggle 
                         field="showServices"
@@ -889,6 +1048,14 @@ const Design: React.FC<DesignProps> = ({ config, setConfig }) => {
             </div>
         </div>
     </div>
+    {isEditorOpen && fileToEdit && (
+        <MediaEditorModal 
+            file={fileToEdit}
+            onClose={() => setIsEditorOpen(false)}
+            onSave={handleSaveEditedMedia}
+        />
+    )}
+    </>
   );
 };
 
