@@ -1,78 +1,148 @@
+const { Octokit } = require('@octokit/rest');
+const fs = require('fs/promises');
+const path = require('path');
+
+// --- CONFIGURATION ---
+// Environment variables are used for security and flexibility.
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const OWNER = process.env.GITHUB_OWNER;
+const REPO = process.env.GITHUB_REPO;
+
+// File and branch configuration
+const FILE_PATH = 'api/check-publish.js';
+const TARGET_BRANCH = 'verification-endpoint';
+const BASE_BRANCH = 'main';
+const COMMIT_MESSAGE = 'feat: Add verification endpoint for published apps';
+
+/**
+ * Main function to handle the GitHub API interactions.
+ */
+async function pushFileToGitHub() {
+  console.log('--- Starting GitHub File Push ---');
+
+  // 1. Validation
+  if (!GITHUB_TOKEN || !OWNER || !REPO) {
+    throw new Error('Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
+  }
+  console.log(`Repository: ${OWNER}/${REPO}`);
+  console.log(`Target Branch: ${TARGET_BRANCH}`);
+
+  // Initialize Octokit
+  const octokit = new Octokit({ auth: GITHUB_TOKEN });
+
+  // 2. Read local file content
+  const localFilePath = path.join(__dirname, '..', FILE_PATH);
+  let fileContent;
+  try {
+    fileContent = await fs.readFile(localFilePath, 'utf-8');
+    console.log(`Successfully read file: ${FILE_PATH}`);
+  } catch (error) {
+    console.error(`Error reading file at ${localFilePath}`);
+    throw error;
+  }
+  
+  // 3. Get the SHA of the base branch (e.g., 'main')
+  const { data: baseBranchRef } = await octokit.rest.git.getRef({
+    owner: OWNER,
+    repo: REPO,
+    ref: `heads/${BASE_BRANCH}`,
+  });
+  const baseSha = baseBranchRef.object.sha;
+  console.log(`Base branch '${BASE_BRANCH}' is at SHA: ${baseSha.substring(0, 7)}`);
+
+  // 4. Get or Create the target branch
+  let targetBranchSha;
+  try {
+    const { data: targetBranchRef } = await octokit.rest.git.getRef({
+      owner: OWNER,
+      repo: REPO,
+      ref: `heads/${TARGET_BRANCH}`,
+    });
+    targetBranchSha = targetBranchRef.object.sha;
+    console.log(`Found existing branch '${TARGET_BRANCH}' at SHA: ${targetBranchSha.substring(0, 7)}`);
+  } catch (error) {
+    if (error.status === 404) {
+      console.log(`Branch '${TARGET_BRANCH}' not found. Creating it from '${BASE_BRANCH}'...`);
+      const { data: newBranchRef } = await octokit.rest.git.createRef({
+        owner: OWNER,
+        repo: REPO,
+        ref: `refs/heads/${TARGET_BRANCH}`,
+        sha: baseSha,
+      });
+      targetBranchSha = newBranchRef.object.sha;
+      console.log(`Created new branch '${TARGET_BRANCH}' at SHA: ${targetBranchSha.substring(0, 7)}`);
+    } else {
+      throw error; // Re-throw other errors
+    }
+  }
+
+  // 5. Get the latest commit and its tree
+   const { data: latestCommit } = await octokit.rest.git.getCommit({
+    owner: OWNER,
+    repo: REPO,
+    commit_sha: targetBranchSha,
+  });
+  const baseTreeSha = latestCommit.tree.sha;
+
+  // 6. Create a new blob with the file content
+  const { data: blobData } = await octokit.rest.git.createBlob({
+    owner: OWNER,
+    repo: REPO,
+    content: fileContent,
+    encoding: 'utf-8',
+  });
+  console.log(`Created blob for file content: ${blobData.sha.substring(0, 7)}`);
+
+  // 7. Create a new tree with the new file, based on the previous tree
+  const { data: treeData } = await octokit.rest.git.createTree({
+    owner: OWNER,
+    repo: REPO,
+    base_tree: baseTreeSha,
+    tree: [
+      {
+        path: FILE_PATH,
+        mode: '100644', // file (blob)
+        type: 'blob',
+        sha: blobData.sha,
+      },
+    ],
+  });
+  console.log(`Created new tree: ${treeData.sha.substring(0, 7)}`);
+
+  // 8. Create a new commit pointing to the new tree
+  const { data: commitData } = await octokit.rest.git.createCommit({
+    owner: OWNER,
+    repo: REPO,
+    message: COMMIT_MESSAGE,
+    tree: treeData.sha,
+    parents: [targetBranchSha], // Parent is the latest commit on the target branch
+  });
+  console.log(`Created new commit: ${commitData.sha.substring(0, 7)}`);
+
+  // 9. Update the branch reference to point to the new commit
+  await octokit.rest.git.updateRef({
+    owner: OWNER,
+    repo: REPO,
+    ref: `heads/${TARGET_BRANCH}`,
+    sha: commitData.sha,
+  });
+
+  console.log(`\n✅ Successfully pushed changes to branch '${TARGET_BRANCH}'!`);
+  console.log(`View the commit: https://github.com/${OWNER}/${REPO}/commit/${commitData.sha}`);
+}
+
+// Execute the script
+pushFileToGitHub().catch(error => {
+  console.error('\n--- ❌ An error occurred ---');
+  if (error.status) {
+    console.error(`GitHub API Error (${error.status}): ${error.message}`);
+    console.error('Check your GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO environment variables.');
+  } else {
+    console.error(error);
+  }
+  process.exit(1);
+});
 // Vercel Serverless Function: /api/check-publish.js
 
-export default async function handler(req, res) {
-  // 1. Ensure the request method is GET.
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
-  }
 
-  try {
-    const { contact_id } = req.query;
-
-    // 2. Validate that contact_id is provided.
-    if (!contact_id) {
-      return res.status(400).json({ success: false, message: 'Missing required parameter: contact_id.' });
-    }
-
-    // --- Supabase Verification ---
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-        console.error('Server configuration error: Supabase URL or Service Key is not set.');
-        return res.status(500).json({ success: false, message: 'Server configuration error.' });
-    }
-    
-    // 3. Query Supabase to find the app data for the given contact_id.
-    const queryUrl = `${supabaseUrl}/rest/v1/customer_apps?contact_id=eq.${encodeURIComponent(contact_id)}&select=*`;
-    
-    const response = await fetch(queryUrl, {
-        method: 'GET',
-        headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-        },
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Supabase query error:', errorData);
-        throw new Error(errorData.message || 'Failed to connect to the database.');
-    }
-    
-    const data = await response.json();
-
-    // 4. Perform checks on the retrieved data.
-    if (data.length === 0) {
-      // No record found for this contact_id.
-      return res.status(200).json({ success: false, message: 'App is not published or incomplete' });
-    }
-
-    const appData = data[0];
-
-    // Check if essential data fields are present and not empty.
-    if (!appData.html_data || !appData.app_name) {
-      return res.status(200).json({ success: false, message: 'App is not published or incomplete' });
-    }
-
-    // Optional: Check if the last_updated timestamp is recent.
-    // const lastUpdated = new Date(appData.last_updated);
-    // const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    // if (lastUpdated < oneDayAgo) {
-    //   return res.status(200).json({ success: false, message: "App has not been published recently." });
-    // }
-
-    // 5. If all checks pass, construct the URL and return success.
-    const publishedUrl = `/customer-apps/${encodeURIComponent(contact_id)}`;
-    
-    return res.status(200).json({ 
-      success: true, 
-      message: 'App is published successfully',
-      url: publishedUrl
-    });
-
-  } catch (err) {
-    console.error('Unhandled error in /api/check-publish:', err);
-    return res.status(500).json({ success: false, message: err.message || 'An unexpected server error occurred.' });
-  }
-}
+  
