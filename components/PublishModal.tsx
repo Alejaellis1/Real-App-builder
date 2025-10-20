@@ -70,38 +70,48 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             logs.push(msg);
             setPublishLog([...logs]);
         };
-        addLog('Verifying publication status...');
+        
+        addLog('Capturing app design...');
+        const appContainer = document.getElementById('appContainer');
+        if (!appContainer) {
+            setError('Could not find the app preview to publish. Please try again.');
+            setPublishState('idle');
+            return;
+        }
+        const html_data = appContainer.outerHTML;
+        
+        addLog('Preparing app data for publication...');
+        const payload = {
+            contact_id: email,
+            app_name: config.appName,
+            html_data: html_data,
+        };
+
+        addLog('Connecting to publishing service...');
 
         try {
-            // Note: The user requested a POST request, but the verification endpoint
-            // is designed to be a GET request. Proceeding with GET.
-            const response = await fetch(`/api/check-publish.js?contact_id=${encodeURIComponent(email)}`, {
-                method: 'GET',
+            const response = await fetch('/api/publish', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
 
             addLog('Receiving response from server...');
-            
             const data = await response.json();
 
-            if (!response.ok) {
+            if (!response.ok || !data.success) {
                 throw new Error(data.message || 'An unknown server error occurred.');
             }
 
-            if (data.success) {
-                addLog('Verification successful! App is published.');
-                const fullUrl = `${window.location.origin}${data.url}`;
-                setLiveUrl(fullUrl);
-                setPublishState('published');
-            } else {
-                setError(data.message || 'Payment Required / Not Published');
-                setPublishState('idle');
-            }
+            addLog('Deployment successful! Your app is live.');
+            setLiveUrl(data.url);
+            setPublishState('published');
+            window.open(data.url, '_blank');
 
         } catch (err: any) {
-            console.error(err);
-            setError(`Verification failed: ${err.message || 'A network error occurred. Please try again.'}`);
-            setPublishState('idle'); // Reset state on failure
+            console.error('Publishing Error:', err);
+            setError(err.message || 'A network error occurred. Please try again.');
+            setPublishState('idle');
         }
     };
     
@@ -118,17 +128,17 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             <div className="bg-violet-50 w-full max-w-lg max-h-[90vh] rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 relative" onClick={(e) => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-stone-500 hover:text-stone-800 transition-colors" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-stone-900">Check App Status</h2>
-                    <p className="text-stone-600 mt-1">Verify if your app is published and retrieve the live URL.</p>
+                    <h2 className="text-2xl font-bold text-stone-900">Publish Your App</h2>
+                    <p className="text-stone-600 mt-1">Once published, your app will be live and accessible to your clients via a unique URL.</p>
                 </div>
                 
                 <div className="overflow-y-auto pr-2 -mr-3 flex-1">
                     <div className="space-y-6">
                          {publishState === 'idle' && (
                              <div className={`bg-white/80 p-5 rounded-xl border border-pink-200 transition-opacity`}>
-                                <h3 className="text-lg font-bold text-stone-800">Verify Publication</h3>
+                                <h3 className="text-lg font-bold text-stone-800">Confirm Account Email</h3>
                                 <p className="text-sm text-stone-600 my-2">
-                                    Enter the email address associated with your account to check the status.
+                                    Enter the email associated with your active subscription to publish the app.
                                 </p>
                                 <div className="mt-4">
                                     <label htmlFor="email" className="block text-sm font-medium text-stone-600 mb-2">
@@ -146,7 +156,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
 
                                 {error && (
                                     <div className="bg-red-100 border border-red-300 text-red-800 text-sm p-3 rounded-lg mt-4">
-                                        <strong>Status:</strong> {error}
+                                        <strong>Error:</strong> {error}
                                     </div>
                                 )}
 
@@ -155,7 +165,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                                     disabled={publishState !== 'idle'} 
                                     className="mt-6 w-full text-lg font-semibold text-black bg-pink-400 px-5 py-3 rounded-lg hover:bg-pink-500 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-pink-400/60 disabled:bg-stone-300 disabled:cursor-not-allowed disabled:shadow-inner disabled:scale-100"
                                 >
-                                    Check Status
+                                    Publish App
                                 </button>
                             </div>
                          )}
@@ -164,7 +174,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                         {/* Results */}
                         {publishState !== 'idle' && (
                             <div className="bg-white/80 p-5 rounded-xl border border-pink-200">
-                                <h3 className="text-lg font-bold text-stone-800 mb-3">Verification Progress</h3>
+                                <h3 className="text-lg font-bold text-stone-800 mb-3">Publishing Progress</h3>
                                 {publishState === 'publishing' && (
                                     <ul className="space-y-2">
                                         {publishLog.map((log, i) => (

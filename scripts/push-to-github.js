@@ -1,3 +1,4 @@
+
 // This script automates the process of pushing the '/api/check-publish.js'
 // file to a specified branch on GitHub.
 //
@@ -25,10 +26,10 @@ const OWNER = process.env.GITHUB_OWNER;
 const REPO = process.env.GITHUB_REPO;
 
 // File and branch configuration
-const FILE_PATH = 'api/check-publish.js';
-const TARGET_BRANCH = 'verification-endpoint';
+const FILE_PATH = 'components/PublishModal.tsx';
+const TARGET_BRANCH = 'feature/app-publishing-logic';
 const BASE_BRANCH = 'main';
-const COMMIT_MESSAGE = 'feat: Add verification endpoint for published apps';
+const COMMIT_MESSAGE = 'feat: Implement app publishing via POST to /api/publish';
 
 /**
  * Main function to handle the GitHub API interactions.
