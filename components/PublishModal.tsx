@@ -110,7 +110,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
 
         } catch (err: any) {
             console.error('Publishing Error:', err);
-            setError(err.message || 'A network error occurred. Please try again.');
+            setError(err.message || 'Publish failed. Please try again later.');
             setPublishState('idle');
         }
     };

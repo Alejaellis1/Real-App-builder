@@ -26,10 +26,10 @@ const OWNER = process.env.GITHUB_OWNER;
 const REPO = process.env.GITHUB_REPO;
 
 // File and branch configuration
-const FILE_PATH = 'api/publish.js';
-const TARGET_BRANCH = 'fix/api-publish-logic';
+const FILE_PATH = 'components/PublishModal.tsx';
+const TARGET_BRANCH = 'feature/update-publish-logic';
 const BASE_BRANCH = 'main';
-const COMMIT_MESSAGE = 'fix: Refactor /api/publish to use Supabase client and improve error handling';
+const COMMIT_MESSAGE = 'feat: Align publish logic and error handling with requirements';
 
 /**
  * Main function to handle the GitHub API interactions.
