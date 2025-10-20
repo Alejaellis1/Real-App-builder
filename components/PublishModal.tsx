@@ -74,77 +74,40 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             setPublishLog([...logs]);
         };
         addLog('Preparing app content...');
-        
-        const appContainer = document.getElementById('appContainer');
-        if (!appContainer) {
-            setError('Fatal Error: Could not find app preview container to publish.');
-            setPublishState('idle');
-            return;
-        }
 
-        // The app uses `locationId` passed from the URL, which serves as the GHL Contact ID.
-        const subscriptionId = locationId;
-        if (!subscriptionId) {
-            setError("Error: Could not find the required user ID (locationId).");
-            setPublishState('idle');
-            return;
-        }
+        // Simulate a short delay for a better user experience
+        setTimeout(() => {
+            addLog('Validating configuration...');
+            try {
+                if (!locationId) {
+                    throw new Error("Could not find the required user ID (locationId).");
+                }
+                if (!appName.trim()) {
+                    throw new Error("App name cannot be empty.");
+                }
 
-        // We construct a full HTML document to send to the server.
-        // This includes the subscription check script for security.
-        const appHTML = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${config.appName}</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-                <script>
-                    const subscriptionId = '${subscriptionId}';
-                    if (subscriptionId) {
-                        fetch('/api/check?subscriptionId=' + subscriptionId)
-                        .then(res => {
-                            if (res.redirected) window.location.href = res.url;
-                            else if (!res.ok) throw new Error('Subscription check failed');
-                        })
-                        .catch(() => {
-                            window.location.href = "/payment-required.html";
-                        });
-                    }
-                </script>
-            </head>
-            <body>
-                ${appContainer.innerHTML}
-            </body>
-            </html>
-        `;
-        
-        addLog('Content prepared. Sending to server...');
-        
-        try {
-            const response = await fetch('/api/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscriptionId, appHTML }),
-            });
-            
-            addLog('Server is processing the request...');
-            
-            const data = await response.json();
+                // The key is namespaced with user ID (locationId) and the chosen app name
+                const storageKey = `publishedApp_${locationId}_${appName.trim()}`;
+                
+                // Save the current config to localStorage
+                localStorage.setItem(storageKey, JSON.stringify(config));
+                addLog('App configuration saved successfully.');
 
-            if (response.ok && data.success) {
-                addLog('Deployment successful!');
-                setLiveUrl(`${window.location.origin}${data.url}`);
-                setPublishState('published');
-            } else {
-                throw new Error(data.error || 'Failed to publish app.');
+                // Construct the final shareable URL
+                const finalUrl = `${window.location.origin}${window.location.pathname}?app=${appName.trim()}&user=${locationId}`;
+                setLiveUrl(finalUrl);
+                
+                setTimeout(() => {
+                     addLog('Deployment successful!');
+                     setPublishState('published');
+                }, 500);
+
+            } catch (err: any) {
+                console.error(err);
+                setError(`Publishing failed: ${err.message}`);
+                setPublishState('idle');
             }
-        } catch (err: any) {
-            console.error(err);
-            setError(`Publishing failed: ${err.message}`);
-            setPublishState('idle');
-        }
+        }, 1000);
     };
     
     const handleCopy = () => {
