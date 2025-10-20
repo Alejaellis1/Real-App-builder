@@ -1,7 +1,7 @@
 // Vercel Serverless Function: /api/check-publish.js
 
 export default async function handler(req, res) {
-  // 1. Ensure the request method is GET.
+  // 1. Ensure the request method is GET, as this is an idempotent check.
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-        console.error('Server configuration error: Supabase URL or Service Key is not set.');
-        return res.status(500).json({ success: false, message: 'Server configuration error.' });
+        // Return a generic error to the client for security.
+        return res.status(500).json({ success: false, message: 'Server error' });
     }
     
     // 3. Query Supabase to find the app data for the given contact_id.
@@ -35,9 +35,8 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Supabase query error:', errorData);
-        throw new Error(errorData.message || 'Failed to connect to the database.');
+        // Throwing will be caught and handled by the generic error handler below.
+        throw new Error('Failed to query database.');
     }
     
     const data = await response.json();
@@ -55,14 +54,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, message: 'App is not published or incomplete' });
     }
 
-    // Optional: Check if the last_updated timestamp is recent.
-    // const lastUpdated = new Date(appData.last_updated);
-    // const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    // if (lastUpdated < oneDayAgo) {
-    //   return res.status(200).json({ success: false, message: "App has not been published recently." });
-    // }
-
     // 5. If all checks pass, construct the URL and return success.
+    // The frontend expects a relative path to construct the full URL. This is more
+    // flexible than a hardcoded URL and works correctly with the existing UI.
     const publishedUrl = `/customer-apps/${encodeURIComponent(contact_id)}`;
     
     return res.status(200).json({ 
@@ -72,7 +66,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('Unhandled error in /api/check-publish:', err);
-    return res.status(500).json({ success: false, message: err.message || 'An unexpected server error occurred.' });
+    // Return a generic server error as requested for any unexpected issues.
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 }

@@ -39,7 +39,36 @@ export async function getClientRecommendations(formData: any): Promise<any> {
     `;
     const aiResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash", contents: prompt,
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { upsells: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, description: { type: Type.STRING } } } }, recommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, description: { type: Type.STRING } } } } } } }
+        config: { 
+            responseMimeType: "application/json", 
+            responseSchema: { 
+                type: Type.OBJECT, 
+                properties: { 
+                    upsells: { 
+                        type: Type.ARRAY, 
+                        items: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                type: { type: Type.STRING, description: "The type of upsell (e.g., 'upgrade', 'service', 'product')." }, 
+                                title: { type: Type.STRING, description: "The name of the upsell." }, 
+                                description: { type: Type.STRING, description: "A brief description of the upsell." } 
+                            } 
+                        } 
+                    }, 
+                    recommendations: { 
+                        type: Type.ARRAY, 
+                        items: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                type: { type: Type.STRING, description: "The type of recommendation (e.g., 'service', 'product', 'consultation')." }, 
+                                title: { type: Type.STRING, description: "The name of the recommended item." }, 
+                                description: { type: Type.STRING, description: "A brief description of the recommendation." } 
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        }
     });
     return safeJsonParse(aiResponse.text);
 }
@@ -61,7 +90,55 @@ export async function analyzeClient(profile: any, imageFile: File): Promise<any>
     
     const aiResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash', contents: { parts: [imagePart, textPart] },
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { observations: { type: Type.ARRAY, items: { type: Type.STRING } }, recommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, description: { type: Type.STRING }, } } }, upsells: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, description: { type: Type.STRING }, } } }, booking_suggestions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { service: { type: Type.STRING }, date_time: { type: Type.STRING }, notes: { type: Type.STRING }, } } } } } }
+        config: { 
+            responseMimeType: "application/json", 
+            responseSchema: { 
+                type: Type.OBJECT, 
+                properties: { 
+                    observations: { 
+                        type: Type.ARRAY, 
+                        items: { type: Type.STRING },
+                        description: "A list of visual observations from the client's photo."
+                    }, 
+                    recommendations: { 
+                        type: Type.ARRAY,
+                        description: "Personalized future recommendations for the client.",
+                        items: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                type: { type: Type.STRING, description: "The type of recommendation (e.g., 'service', 'product')." }, 
+                                title: { type: Type.STRING, description: "The title of the recommendation." }, 
+                                description: { type: Type.STRING, description: "A detailed description of the recommendation." }
+                            } 
+                        } 
+                    }, 
+                    upsells: { 
+                        type: Type.ARRAY, 
+                        description: "Potential upsells for the client's current service.",
+                        items: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                type: { type: Type.STRING, description: "The type of upsell (e.g., 'upgrade', 'add-on')." }, 
+                                title: { type: Type.STRING, description: "The title of the upsell for the current session." }, 
+                                description: { type: Type.STRING, description: "A detailed description of the upsell." }
+                            } 
+                        } 
+                    }, 
+                    booking_suggestions: { 
+                        type: Type.ARRAY,
+                        description: "Suggestions for the client's next appointment.",
+                        items: { 
+                            type: Type.OBJECT, 
+                            properties: { 
+                                service: { type: Type.STRING, description: "The suggested service to book next." }, 
+                                date_time: { type: Type.STRING, description: "A suggested time frame for the next booking (e.g., 'in 4-6 weeks')." }, 
+                                notes: { type: Type.STRING, description: "Any relevant notes for the next booking." }
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        }
     });
     return { analysis: safeJsonParse(aiResponse.text) };
 }
