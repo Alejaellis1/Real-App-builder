@@ -7,11 +7,13 @@ import { createClient } from '@supabase/supabase-js';
  * Vercel Node.js 22.x runtime and ensures a JSON response in all cases.
  */
 export default async function handler(req, res) {
-  // 1. Only allow POST requests.
+  // 1. Only accept POST requests.
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ success: false, message: `Method Not Allowed. Please use POST.` });
   }
+
+  console.log('Received publish request.');
 
   // Use a single try...catch block to handle all errors and ensure a JSON response.
   try {
@@ -21,17 +23,18 @@ export default async function handler(req, res) {
       console.warn('Validation failed: Missing required fields in request body.');
       return res.status(400).json({ success: false, message: 'Missing required fields: contact_id, app_name, and html_data are required.' });
     }
-    console.log(`Received publish request for contact_id: ${contact_id}`);
+    console.log(`Processing request for contact_id: ${contact_id}`);
 
     // 3. Verify that all necessary environment variables are set.
     const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
       console.error('Server Configuration Error: SUPABASE_URL and/or SUPABASE_SERVICE_KEY are not set.');
-      return res.status(500).json({ success: false, message: "Server configuration error. Please contact support." });
+      return res.status(500).json({ success: false, message: "Server configuration error." });
     }
 
     // Initialize the Supabase client.
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    console.log('Supabase client initialized.');
 
     // 4. Query Supabase to check the subscription status.
     console.log(`Querying Supabase for subscription status for: ${contact_id}`);

@@ -1,5 +1,5 @@
-// This script automates the process of pushing the '/api/check-publish.js'
-// file to a specified branch on GitHub.
+// This script automates the process of pushing specified files
+// to a new branch on GitHub.
 //
 // --- PRE-REQUISITES ---
 // 1. Install the required package from your project's root directory:
@@ -25,15 +25,15 @@ const OWNER = process.env.GITHUB_OWNER;
 const REPO = process.env.GITHUB_REPO;
 
 // File and branch configuration
-const FILE_PATH = 'api/check-publish.js';
-const TARGET_BRANCH = 'fix/supabase-connection-check-publish';
+const FILE_PATHS = ['api/publish.js', 'package.json'];
+const TARGET_BRANCH = 'feat/supabase-publish-api';
 const BASE_BRANCH = 'main';
-const COMMIT_MESSAGE = 'fix(api): improve supabase connection and error handling in check-publish';
+const COMMIT_MESSAGE = 'feat(api): create supabase-backed publish function and update deps';
 
 /**
  * Main function to handle the GitHub API interactions.
  */
-async function pushFileToGitHub() {
+async function pushFilesToGitHub() {
   console.log('--- Starting GitHub File Push ---');
 
   // 1. Validation
@@ -43,18 +43,35 @@ async function pushFileToGitHub() {
   console.log(`Repository: ${OWNER}/${REPO}`);
   console.log(`Target Branch: ${TARGET_BRANCH}`);
 
-  // Initialize Octokit
   const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
-  // 2. Read local file content
-  const localFilePath = path.join(__dirname, '..', FILE_PATH);
-  let fileContent;
-  try {
-    fileContent = await fs.readFile(localFilePath, 'utf-8');
-    console.log(`Successfully read file: ${FILE_PATH}`);
-  } catch (error) {
-    console.error(`Error reading file at ${localFilePath}`);
-    throw error;
+  // 2. Read local files and prepare tree items
+  const treeItems = [];
+  for (const filePath of FILE_PATHS) {
+    const localFilePath = path.join(__dirname, '..', filePath);
+    let fileContent;
+    try {
+      fileContent = await fs.readFile(localFilePath, 'utf-8');
+      console.log(`Successfully read file: ${filePath}`);
+    } catch (error) {
+      console.error(`Error reading file at ${localFilePath}`);
+      throw error;
+    }
+    
+    const { data: blobData } = await octokit.rest.git.createBlob({
+      owner: OWNER,
+      repo: REPO,
+      content: fileContent,
+      encoding: 'utf-8',
+    });
+    console.log(`Created blob for ${filePath}: ${blobData.sha.substring(0, 7)}`);
+
+    treeItems.push({
+      path: filePath,
+      mode: '100644', // file (blob)
+      type: 'blob',
+      sha: blobData.sha,
+    });
   }
   
   // 3. Get the SHA of the base branch (e.g., 'main')
@@ -88,7 +105,7 @@ async function pushFileToGitHub() {
       targetBranchSha = newBranchRef.object.sha;
       console.log(`Created new branch '${TARGET_BRANCH}' at SHA: ${targetBranchSha.substring(0, 7)}`);
     } else {
-      throw error; // Re-throw other errors
+      throw error;
     }
   }
 
@@ -100,32 +117,16 @@ async function pushFileToGitHub() {
   });
   const baseTreeSha = latestCommit.tree.sha;
 
-  // 6. Create a new blob with the file content
-  const { data: blobData } = await octokit.rest.git.createBlob({
-    owner: OWNER,
-    repo: REPO,
-    content: fileContent,
-    encoding: 'utf-8',
-  });
-  console.log(`Created blob for file content: ${blobData.sha.substring(0, 7)}`);
-
-  // 7. Create a new tree with the new file, based on the previous tree
+  // 6. Create a new tree with the new files, based on the previous tree
   const { data: treeData } = await octokit.rest.git.createTree({
     owner: OWNER,
     repo: REPO,
     base_tree: baseTreeSha,
-    tree: [
-      {
-        path: FILE_PATH,
-        mode: '100644', // file (blob)
-        type: 'blob',
-        sha: blobData.sha,
-      },
-    ],
+    tree: treeItems,
   });
   console.log(`Created new tree: ${treeData.sha.substring(0, 7)}`);
 
-  // 8. Create a new commit pointing to the new tree
+  // 7. Create a new commit pointing to the new tree
   const { data: commitData } = await octokit.rest.git.createCommit({
     owner: OWNER,
     repo: REPO,
@@ -135,7 +136,7 @@ async function pushFileToGitHub() {
   });
   console.log(`Created new commit: ${commitData.sha.substring(0, 7)}`);
 
-  // 9. Update the branch reference to point to the new commit
+  // 8. Update the branch reference to point to the new commit
   await octokit.rest.git.updateRef({
     owner: OWNER,
     repo: REPO,
@@ -148,7 +149,7 @@ async function pushFileToGitHub() {
 }
 
 // Execute the script
-pushFileToGitHub().catch(error => {
+pushFilesToGitHub().catch(error => {
   console.error('\n--- ❌ An error occurred ---');
   if (error.status) {
     console.error(`GitHub API Error (${error.status}): ${error.message}`);
