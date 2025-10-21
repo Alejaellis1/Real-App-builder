@@ -1,10 +1,10 @@
 // Vercel Serverless Function: /api/publish.js
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 /**
- * Handles publishing an app by verifying a subscription status directly from Supabase
- * and then saving the app data back to Supabase. This function is designed for the
- * Vercel Node.js 22.x runtime and ensures a JSON response in all cases.
+ * Handles publishing an app by verifying a Stripe subscription and then saving the
+ * app data to Supabase. This function is designed for the Vercel Node.js 22.x runtime.
  */
 export default async function handler(req, res) {
   // 1. Only accept POST requests.
@@ -15,7 +15,6 @@ export default async function handler(req, res) {
 
   console.log('Received publish request.');
 
-  // Use a single try...catch block to handle all errors and ensure a JSON response.
   try {
     // 2. Validate required fields from the request body.
     const { contact_id, app_name, html_data } = req.body;
@@ -26,38 +25,57 @@ export default async function handler(req, res) {
     console.log(`Processing request for contact_id: ${contact_id}`);
 
     // 3. Verify that all necessary environment variables are set.
-    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      console.error('Server Configuration Error: SUPABASE_URL and/or SUPABASE_SERVICE_KEY are not set.');
+    const { SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY } = process.env;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !STRIPE_SECRET_KEY) {
+      console.error('Server Configuration Error: Missing SUPABASE_URL, SUPABASE_SERVICE_KEY, or STRIPE_SECRET_KEY.');
       return res.status(500).json({ success: false, message: "Server configuration error." });
     }
 
-    // Initialize the Supabase client.
+    // 4. Connect to Supabase and fetch stripe_customer_id.
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     console.log('Supabase client initialized.');
 
-    // 4. Query Supabase to check the subscription status.
-    console.log(`Querying Supabase for subscription status for: ${contact_id}`);
+    console.log(`Querying Supabase for stripe_customer_id for: ${contact_id}`);
     const { data: userRecord, error: queryError } = await supabase
       .from('customer_apps')
-      .select('status')
+      .select('stripe_customer_id')
       .eq('contact_id', contact_id)
-      .maybeSingle(); // Use maybeSingle() to avoid an error if no record is found.
+      .maybeSingle();
 
     if (queryError) {
       console.error('Supabase query error:', queryError.message);
-      throw new Error('Failed to query the database for subscription status.');
+      throw new Error('Failed to query the database for customer details.');
     }
 
-    // 5. If the record does not exist or its status is not 'active', deny the request.
-    if (!userRecord || userRecord.status !== 'active') {
-      console.log(`Subscription for ${contact_id} is inactive or not found.`);
+    if (!userRecord || !userRecord.stripe_customer_id) {
+      console.log(`Subscription for ${contact_id} not found or missing Stripe customer ID.`);
+      return res.status(403).json({ success: false, message: "Subscription inactive" });
+    }
+    const stripeCustomerId = userRecord.stripe_customer_id;
+    console.log(`Found Stripe Customer ID: ${stripeCustomerId}`);
+
+    // 5. Verify that the Stripe customer has an active subscription.
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
+
+    console.log(`Checking Stripe for active subscriptions for customer: ${stripeCustomerId}`);
+    const subscriptions = await stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'all',
+      limit: 10,
+    });
+
+    const hasActiveSubscription = subscriptions.data.some(
+      sub => sub.status === 'active' || sub.status === 'trialing'
+    );
+
+    if (!hasActiveSubscription) {
+      console.log(`No active Stripe subscription found for customer: ${stripeCustomerId}`);
       return res.status(403).json({ success: false, message: "Subscription inactive" });
     }
 
-    console.log(`Subscription for ${contact_id} is active. Proceeding with upsert.`);
+    console.log(`Active subscription confirmed for customer: ${stripeCustomerId}. Proceeding with upsert.`);
 
-    // 6. If the subscription is active, upsert the app data.
+    // 6. If the subscription is active, upsert the app data into Supabase.
     const published_app_url = `/customer-apps/${encodeURIComponent(contact_id)}`;
     const { error: upsertError } = await supabase
       .from('customer_apps')
@@ -68,17 +86,17 @@ export default async function handler(req, res) {
         last_updated: new Date().toISOString(),
         published_app_url,
       }, {
-        onConflict: 'contact_id' // Use contact_id as the unique key for upserting.
+        onConflict: 'contact_id'
       });
 
     if (upsertError) {
       console.error('Supabase upsert error:', upsertError.message);
       throw new Error('Failed to save app data to the database.');
     }
-    
+
     console.log(`Successfully published app for ${contact_id}. URL: ${published_app_url}`);
 
-    // 7. Return the success response with the published URL.
+    // 7. Return a JSON response with success: true.
     return res.status(200).json({
       success: true,
       message: 'App published successfully',
@@ -86,9 +104,11 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // 8. Robust generic error handler for any unexpected issues.
+    // 8. Handle any unexpected server errors.
     console.error('Unhandled error in /api/publish function:', err.message);
-    // Return a generic, user-friendly error message.
-    return res.status(500).json({ success: false, message: 'An unexpected server error occurred. Please try again later.' });
+    if (err.type) { // Check for a Stripe error object
+        return res.status(500).json({ success: false, message: `A payment processing error occurred: ${err.message}` });
+    }
+    return res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
   }
 }
