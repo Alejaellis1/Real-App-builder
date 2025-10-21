@@ -29,51 +29,37 @@ export default async function handler(req, res) {
     console.log('Checking for necessary environment variables...');
     const { GOOGLE_SHEET_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
 
-    // Specific check for Supabase credentials as requested.
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-        console.error('Server Configuration Error: SUPABASE_URL or SUPABASE_SERVICE_KEY is not set.');
-        // User-requested specific error message for missing credentials.
-        return res.status(500).json({ success: false, message: "Missing credentials" });
-    }
-    if (!GOOGLE_SHEET_URL) {
-        console.error('Server Configuration Error: GOOGLE_SHEET_URL is not set.');
-        return res.status(500).json({ success: false, message: 'Server configuration error. Please contact support.' });
+    if (!GOOGLE_SHEET_URL || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        console.error('Server Configuration Error: One or more required environment variables are not set (GOOGLE_SHEET_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY).');
+        return res.status(500).json({ success: false, message: "Server configuration error" });
     }
     console.log('Environment variables check passed.');
 
     // 4. Fetch and parse the Google Sheet to verify the subscription.
     console.log('Verifying subscription status from Google Sheet...');
-    let isSubscribedAndActive = false;
-    try {
-      const sheetResponse = await fetch(GOOGLE_SHEET_URL);
-      if (!sheetResponse.ok) {
-        // Log detailed error and throw a generic one to the client.
+    const sheetResponse = await fetch(GOOGLE_SHEET_URL);
+    if (!sheetResponse.ok) {
         console.error(`Failed to fetch Google Sheet. Status: ${sheetResponse.status} ${sheetResponse.statusText}`);
         throw new Error('Could not connect to the subscription service.');
-      }
-      
-      const csvText = await sheetResponse.text();
-      const parsedData = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    }
+    
+    const csvText = await sheetResponse.text();
+    const parsedData = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
-      const userRecord = parsedData.data.find(row => 
-        // Handles both 'contact id' and 'contact_id' headers, case-insensitively.
+    const userRecord = parsedData.data.find(row => 
         (row['contact id'] || row['contact_id'])?.trim().toLowerCase() === contact_id.trim().toLowerCase()
-      );
+    );
 
-      if (userRecord && userRecord.status?.trim().toLowerCase() === 'active') {
+    let isSubscribedAndActive = false;
+    if (userRecord && userRecord.status?.trim().toLowerCase() === 'active') {
         isSubscribedAndActive = true;
         console.log(`Subscription for ${contact_id} is active.`);
-      } else {
+    } else {
         console.log(`Subscription for ${contact_id} is inactive or not found.`);
-      }
-    } catch (err) {
-      console.error('Error during Google Sheet verification:', err.message);
-      return res.status(500).json({ success: false, message: 'Could not verify your subscription status.' });
     }
     
     // 5. If not active, return the specific failure message.
     if (!isSubscribedAndActive) {
-      // User-requested specific message for inactive subscription.
       return res.status(403).json({ success: false, message: "Subscription inactive" });
     }
 
@@ -92,12 +78,11 @@ export default async function handler(req, res) {
         last_updated: new Date().toISOString(),
         published_app_url,
       }, {
-        onConflict: 'contact_id' // Assumes 'contact_id' is the primary key or has a UNIQUE constraint.
+        onConflict: 'contact_id'
       });
 
     if (upsertError) {
       console.error('Supabase upsert error:', upsertError.message);
-      // Throw the error to be caught by the main catch block.
       throw upsertError;
     }
 
@@ -113,7 +98,6 @@ export default async function handler(req, res) {
   } catch (err) {
     // 8. Robust generic error handling for any unexpected issues.
     console.error('Unhandled error in /api/publish function:', err.message);
-    // Avoid exposing detailed internal errors to the client.
     return res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
   }
 }
