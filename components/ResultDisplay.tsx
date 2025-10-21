@@ -384,125 +384,98 @@ const AppPreview: React.FC<AppPreviewProps> = ({ config }) => {
         return <HomeContent config={config} setActiveTabByContent={handleSetTabByContent} />;
     }
   };
-
+  
+  // FIX: Complete the component which was cut off, causing type and import errors.
   const isContentVisible = (content: ContentType) => {
     switch (content) {
-        case 'services': return showServices;
-        case 'gallery': return showGallery;
-        case 'blog': return showBlog;
-        case 'contact': return showContact;
-        default: return true; // Home is always visible
+      case 'services':
+        return showServices;
+      case 'gallery':
+        return showGallery;
+      case 'blog':
+        return showBlog;
+      case 'contact':
+        return showContact;
+      case 'home':
+      default:
+        return true;
     }
   };
 
-  const visibleNavItems = navItems.filter(item => item.visible && isContentVisible(item.content));
+  const visibleNavItems = navItems.filter(item => isContentVisible(item.content) && item.visible);
 
-  const getColoredIconUrl = (iconUrl: string, color: string) => {
-    // Only attempt to color SVGs that are formatted as data URIs
-    if (!iconUrl || !iconUrl.startsWith('data:image/svg+xml')) {
-      return iconUrl; 
+  useEffect(() => {
+    // When nav items visibility changes, if the active tab is no longer visible, reset to home.
+    const activeItem = navItems[activeTabIndex];
+    if (activeItem && (!isContentVisible(activeItem.content) || !activeItem.visible)) {
+        const homeIndex = findTabIndexByContent('home');
+        setActiveTabIndex(homeIndex !== -1 ? homeIndex : 0);
     }
-    // URL-encode the color value (# becomes %23, etc.) to be valid in a URL.
-    const encodedColor = encodeURIComponent(color);
-    // Replace the hardcoded `fill='black'` with the dynamic, encoded color.
-    return iconUrl.replace(/fill='black'/, `fill='${encodedColor}'`);
-  };
+  }, [navItems, activeTabIndex, showServices, showGallery, showBlog, showContact]);
 
   return (
-    <div className="w-[375px] h-[750px] bg-gradient-to-br from-gray-500 to-gray-800 rounded-[40px] shadow-2xl p-2 border-2 border-gray-900 transform scale-[0.85]">
-      <div 
-        id="appContainer"
-        className="w-full h-full rounded-[32px] overflow-hidden flex flex-col transition-colors duration-300"
-        style={appStyle}
-      >
-        <style>
-            {`
-                .themed-bg { background-color: var(--primary-color); } 
-                .themed-text { color: var(--primary-color); }
-                .app-bg { background-color: var(--background-color); }
-                .app-text { color: var(--text-color); }
-                .themed-border { border-color: var(--primary-color); }
-                .gel-button {
-                    background: linear-gradient(to bottom, ${primaryColor}99, ${primaryColor});
-                    border: 1px solid ${primaryColor};
-                    box-shadow: inset 0 0 10px ${primaryColor}50, 0 0 5px ${primaryColor}80;
-                }
-                .accent-1-text { color: var(--accent-color-1); }
-                .accent-1-bg { background-color: var(--accent-color-1); }
-                .accent-1-border { border-color: var(--accent-color-1); }
-                
-                .accent-2-text { color: var(--accent-color-2); }
-                .accent-2-bg { background-color: var(--accent-color-2); }
-                .accent-2-border { border-color: var(--accent-color-2); }
+    <div id="appContainer" className="w-[375px] h-[750px] bg-white rounded-[40px] shadow-2xl overflow-hidden border-[10px] border-stone-800 flex flex-col relative themed-bg app-text" style={appStyle}>
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 border-b border-black/5 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {logoUrl && <img src={logoUrl} alt="Logo" className="h-8 w-8 object-contain" />}
+          <h1 className="font-bold text-lg themed-text">{appName}</h1>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-stone-200"></div>
+      </header>
 
-                .accent-3-text { color: var(--accent-color-3); }
-                .accent-3-bg { background-color: var(--accent-color-3); }
-                .accent-3-border { border-color: var(--accent-color-3); }
-
-                .icon-glow {
-                    filter: drop-shadow(0 0 5px var(--primary-color));
-                }
-                
-                .themed-text-hover:hover { color: var(--primary-color); }
-
-                /* Support for dynamic grid columns */
-                .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-                .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-                .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-                .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-                .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-                .hide-scrollbar::-webkit-scrollbar { display: none; }
-                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}
-        </style>
-        
-        <header className="flex items-center p-4 border-b border-white/10 app-bg">
-            {logoUrl && <img src={logoUrl} alt="logo" className="w-8 h-8 mr-3 object-contain" />}
-            <h1 className="font-bold text-xl app-text uppercase tracking-widest">{appName}</h1>
-        </header>
-
-        <main className="flex-1 overflow-y-auto app-bg app-text">
-            {renderActiveContent()}
-        </main>
-        
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar">
+        {renderActiveContent()}
         <SocialLinks config={config} />
+      </main>
 
-        <nav className="app-bg border-t border-black/5 shadow-[0_-2px_8px_rgba(0,0,0,0.07)]">
-            <div className="flex justify-around items-center h-16">
-                {visibleNavItems.map((item) => {
-                    const originalIndex = navItems.findIndex(i => i === item);
-                    const isUrl = item.icon.startsWith('http') || item.icon.startsWith('data:');
-                    const isActive = activeTabIndex === originalIndex;
-                    
-                    const iconColor = isActive ? primaryColor : textColor;
-                    const coloredIconSrc = getColoredIconUrl(item.icon, iconColor);
-
-                    return (
-                        <button
-                            key={originalIndex}
-                            onClick={() => setActiveTabIndex(originalIndex)}
-                            className={`flex-1 flex flex-col items-center justify-center gap-1 h-full transition-all duration-200 transform hover:scale-105 focus:outline-none ${
-                                isActive ? 'themed-text' : 'app-text opacity-60 hover:opacity-100'
-                            }`}
-                        >
-                            <div className={`h-6 w-6 transition-all duration-200`}>
-                                {isUrl ? (
-                                    <img 
-                                        src={coloredIconSrc}
-                                        alt={`${item.label} icon`}
-                                        className={`w-full h-full object-contain ${isActive ? 'icon-glow' : ''}`}
-                                    />
-                                ) : (
-                                    <span className="text-2xl leading-none">{item.icon}</span>
-                                )}
-                            </div>
-                            <span className="block text-[10px] font-medium mt-px uppercase tracking-wider">{item.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
-        </nav>
-      </div>
+      {/* Navigation */}
+      <nav className="flex items-center justify-around p-2 border-t border-black/5 flex-shrink-0">
+        {visibleNavItems.map((item) => {
+          const itemIndex = findTabIndexByContent(item.content);
+          if (itemIndex === -1) return null;
+          const isActive = activeTabIndex === itemIndex;
+          return (
+            <button 
+                key={item.content} 
+                onClick={() => setActiveTabIndex(itemIndex)}
+                className={`flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-lg transition-colors ${isActive ? 'themed-text' : 'opacity-60 hover:opacity-100'}`}
+            >
+                <div 
+                    className="w-6 h-6" 
+                    style={{ 
+                        maskImage: `url("${item.icon}")`,
+                        maskSize: 'contain',
+                        maskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        backgroundColor: isActive ? primaryColor : 'currentColor'
+                    }}
+                />
+              <span className="text-[10px] font-semibold whitespace-nowrap">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      
+      {/* Theming Styles */}
+      <style>{`
+        .themed-bg { background-color: var(--background-color); }
+        .app-text { color: var(--text-color); }
+        .themed-text { color: var(--primary-color); }
+        .themed-text-hover:hover { color: var(--primary-color); }
+        .themed-border { border-color: var(--primary-color); }
+        .accent-1-text { color: var(--accent-color-1); }
+        .accent-2-bg { background-color: var(--accent-color-2); }
+        .accent-3-bg { background-color: var(--accent-color-3); }
+        .gel-button {
+            background: linear-gradient(to bottom, var(--primary-color) 0%, color-mix(in srgb, var(--primary-color), black 20%) 100%);
+            border: 1px solid color-mix(in srgb, var(--primary-color), black 30%);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--primary-color), white 40%) inset, 0 2px 3px rgba(0,0,0,0.2);
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 };

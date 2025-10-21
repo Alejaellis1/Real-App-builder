@@ -2,15 +2,28 @@
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
+// --- Pre-flight Check for Environment Variables ---
+// This check runs when the function is initialized. If critical variables are missing,
+// the function will fail to deploy or start, making the configuration error clear in Vercel logs.
+const { SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY } = process.env;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !STRIPE_SECRET_KEY) {
+    console.error('FATAL_ERROR: Serverless function is missing required environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY). The function cannot start.');
+    throw new Error('Server configuration error: Missing required environment variables.');
+}
+
+// Initialize clients once per function instance for efficiency.
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const stripe = new Stripe(STRIPE_SECRET_KEY, {
+    apiVersion: '2024-04-10', // Pin the API version for stability
+});
+
 /**
  * Handles publishing an app by verifying a Stripe subscription and then saving the
  * app data to Supabase. This function is designed for the Vercel Node.js 22.x runtime.
  */
 export default async function handler(req, res) {
-  // Ensure all responses are correctly typed as JSON.
   res.setHeader('Content-Type', 'application/json');
 
-  // 1. Only accept POST requests.
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ success: false, message: `Method Not Allowed. Please use POST.` });
@@ -19,24 +32,12 @@ export default async function handler(req, res) {
   console.log('Received publish request.');
 
   try {
-    // 2. Validate required fields from the request body.
     const { contact_id, app_name, html_data } = req.body;
     if (!contact_id || !app_name || !html_data) {
       console.warn('Validation failed: Missing required fields in request body.');
       return res.status(400).json({ success: false, message: 'Missing required fields: contact_id, app_name, and html_data are required.' });
     }
     console.log(`Processing request for contact_id: ${contact_id}`);
-
-    // 3. Verify that all necessary environment variables are set.
-    const { SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY } = process.env;
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !STRIPE_SECRET_KEY) {
-      console.error('Server Configuration Error: Missing SUPABASE_URL, SUPABASE_SERVICE_KEY, or STRIPE_SECRET_KEY.');
-      return res.status(500).json({ success: false, message: "Server configuration error." });
-    }
-
-    // 4. Connect to Supabase and fetch stripe_customer_id.
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    console.log('Supabase client initialized.');
 
     console.log(`Querying Supabase for stripe_customer_id for: ${contact_id}`);
     const { data: userRecord, error: queryError } = await supabase
@@ -57,13 +58,10 @@ export default async function handler(req, res) {
     const stripeCustomerId = userRecord.stripe_customer_id;
     console.log(`Found Stripe Customer ID: ${stripeCustomerId}`);
 
-    // 5. Verify that the Stripe customer has an active subscription.
-    const stripe = new Stripe(STRIPE_SECRET_KEY);
-
     console.log(`Checking Stripe for active subscriptions for customer: ${stripeCustomerId}`);
     const subscriptions = await stripe.subscriptions.list({
       customer: stripeCustomerId,
-      status: 'all',
+      status: 'all', // Check all statuses and then filter client-side
       limit: 10,
     });
 
@@ -78,7 +76,6 @@ export default async function handler(req, res) {
 
     console.log(`Active subscription confirmed for customer: ${stripeCustomerId}. Proceeding with upsert.`);
 
-    // 6. If the subscription is active, upsert the app data into Supabase.
     const published_app_url = `/customer-apps/${encodeURIComponent(contact_id)}`;
     const { error: upsertError } = await supabase
       .from('customer_apps')
@@ -99,7 +96,6 @@ export default async function handler(req, res) {
 
     console.log(`Successfully published app for ${contact_id}. URL: ${published_app_url}`);
 
-    // 7. Return a JSON response with success: true.
     return res.status(200).json({
       success: true,
       message: 'App published successfully',
@@ -107,11 +103,14 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // 8. Handle any unexpected server errors.
-    console.error('Unhandled error in /api/publish function:', err.message);
-    if (err.type) { // Check for a Stripe error object
-        return res.status(500).json({ success: false, message: `A payment processing error occurred: ${err.message}` });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('Unhandled error in /api/publish function:', errorMessage);
+    
+    // Check for a Stripe-specific error structure
+    if (err && typeof err === 'object' && 'type' in err) {
+        return res.status(500).json({ success: false, message: `A payment processing error occurred: ${errorMessage}` });
     }
+    
     return res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
   }
 }
