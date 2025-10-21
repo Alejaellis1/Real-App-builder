@@ -4,66 +4,83 @@ import Papa from 'papaparse';
 
 /**
  * Handles publishing an app by verifying a subscription and saving data to Supabase.
- * This endpoint is compatible with the Vercel Node.js 22.x runtime.
+ * This function is designed to be robust and always return a JSON response
+ * to avoid Vercel 502 errors on unhandled exceptions.
+ * Compatible with the Vercel Node.js 22.x runtime.
  */
 export default async function handler(req, res) {
   // 1. Only accept POST requests.
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ success: false, message: `Please use POST` });
+    return res.status(405).json({ success: false, message: `Method Not Allowed. Please use POST.` });
   }
 
   try {
-    // 2. Read and validate required fields from the request body.
+    // 2. Validate required fields from the request body.
+    console.log('Publish request received. Validating body...');
     const { contact_id, app_name, html_data } = req.body;
     if (!contact_id || !app_name || !html_data) {
+      console.warn('Validation failed: Missing required fields.');
       return res.status(400).json({ success: false, message: 'Missing required fields: contact_id, app_name, and html_data are required.' });
     }
+    console.log(`Request validated for contact_id: ${contact_id}`);
 
-    // 3. Fetch and parse the Google Sheet to verify the subscription.
-    const sheetURL = process.env.GOOGLE_SHEET_URL;
-    if (!sheetURL) {
-      console.error('Server Configuration Error: GOOGLE_SHEET_URL is not set.');
-      // Never expose internal configuration details in the response.
-      return res.status(500).json({ success: false, message: 'Server configuration error.' });
+    // 3. Verify existence of all necessary environment variables first.
+    console.log('Checking for necessary environment variables...');
+    const { GOOGLE_SHEET_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
+
+    // Specific check for Supabase credentials as requested.
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        console.error('Server Configuration Error: SUPABASE_URL or SUPABASE_SERVICE_KEY is not set.');
+        // User-requested specific error message for missing credentials.
+        return res.status(500).json({ success: false, message: "Missing credentials" });
     }
+    if (!GOOGLE_SHEET_URL) {
+        console.error('Server Configuration Error: GOOGLE_SHEET_URL is not set.');
+        return res.status(500).json({ success: false, message: 'Server configuration error. Please contact support.' });
+    }
+    console.log('Environment variables check passed.');
 
-    let contactIsActive = false;
+    // 4. Fetch and parse the Google Sheet to verify the subscription.
+    console.log('Verifying subscription status from Google Sheet...');
+    let isSubscribedAndActive = false;
     try {
-      const sheetResponse = await fetch(sheetURL);
-      if (!sheetResponse.ok) throw new Error(`Failed to fetch Google Sheet. Status: ${sheetResponse.status}`);
+      const sheetResponse = await fetch(GOOGLE_SHEET_URL);
+      if (!sheetResponse.ok) {
+        // Log detailed error and throw a generic one to the client.
+        console.error(`Failed to fetch Google Sheet. Status: ${sheetResponse.status} ${sheetResponse.statusText}`);
+        throw new Error('Could not connect to the subscription service.');
+      }
       
       const csvText = await sheetResponse.text();
       const parsedData = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
       const userRecord = parsedData.data.find(row => 
+        // Handles both 'contact id' and 'contact_id' headers, case-insensitively.
         (row['contact id'] || row['contact_id'])?.trim().toLowerCase() === contact_id.trim().toLowerCase()
       );
 
       if (userRecord && userRecord.status?.trim().toLowerCase() === 'active') {
-        contactIsActive = true;
+        isSubscribedAndActive = true;
+        console.log(`Subscription for ${contact_id} is active.`);
+      } else {
+        console.log(`Subscription for ${contact_id} is inactive or not found.`);
       }
     } catch (err) {
       console.error('Error during Google Sheet verification:', err.message);
       return res.status(500).json({ success: false, message: 'Could not verify your subscription status.' });
     }
     
-    if (!contactIsActive) {
-      return res.status(403).json({ success: false, message: 'Subscription inactive or contact not found' });
+    // 5. If not active, return the specific failure message.
+    if (!isSubscribedAndActive) {
+      // User-requested specific message for inactive subscription.
+      return res.status(403).json({ success: false, message: "Subscription inactive" });
     }
 
-    // 4. Connect to Supabase and upsert the app data.
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+    // 6. Connect to Supabase and upsert the app data.
+    console.log('Connecting to Supabase to save app data...');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Server Configuration Error: Supabase URL or Service Key is not set.');
-      return res.status(500).json({ success: false, message: 'Server configuration error.' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // 5. Generate the unique published URL.
     const published_app_url = `/customer-apps/${encodeURIComponent(contact_id)}`;
 
     const { error: upsertError } = await supabase
@@ -79,11 +96,14 @@ export default async function handler(req, res) {
       });
 
     if (upsertError) {
-      // Let the generic catch block handle this for consistent error logging.
+      console.error('Supabase upsert error:', upsertError.message);
+      // Throw the error to be caught by the main catch block.
       throw upsertError;
     }
 
-    // 6. Return a clean success JSON response.
+    console.log(`Successfully saved app data for ${contact_id}.`);
+
+    // 7. Return the success JSON response.
     return res.status(200).json({
       success: true,
       message: 'App published successfully',
@@ -91,9 +111,9 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // 7. Robust error handling for any unexpected issues.
-    console.error('Unhandled error in /api/publish:', err.message);
-    // Avoid exposing detailed Supabase or other internal errors to the client.
+    // 8. Robust generic error handling for any unexpected issues.
+    console.error('Unhandled error in /api/publish function:', err.message);
+    // Avoid exposing detailed internal errors to the client.
     return res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
   }
 }
