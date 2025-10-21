@@ -187,46 +187,6 @@ export async function generateMarketingContent(prompt: string, contentType: stri
     return safeJsonParse(aiResponse.text);
 }
 
-// FIX: Added the missing `generateLeads` function to resolve the import error in `LeadGenerator.tsx`.
-/**
- * Generates B2B partnership leads based on provider's profile.
- */
-export async function generateLeads(providerInfo: any): Promise<any> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `
-        You are an expert B2B lead generation specialist.
-        Find 5 partnership leads for a ${providerInfo.service_type} professional in ${providerInfo.location} (within a ${providerInfo.target_radius} mile radius).
-        Ideal partners are: "${providerInfo.lead_preferences}".
-    `;
-    const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash", 
-        contents: prompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        company_name: { type: Type.STRING, description: "The name of the potential partner company." },
-                        website: { type: Type.STRING, description: "The official website URL of the company." },
-                        contact_person: { type: Type.STRING, description: "The name of a relevant decision-maker at the company." },
-                        role: { type: Type.STRING, description: "The job title or role of the contact person." },
-                        email: { type: Type.STRING, description: "The professional email address for the contact person." },
-                        phone: { type: Type.STRING, description: "The business phone number for the company or contact." },
-                        linkedin_profile: { type: Type.STRING, description: "The URL for the contact person's or company's LinkedIn profile." },
-                        rationale: { type: Type.STRING, description: "A brief explanation of why this company is a good partnership fit." },
-                        verification_status: { type: Type.STRING, description: "The confidence level of the contact info ('Verified' or 'Likely')." },
-                        interest_score: { type: Type.NUMBER, description: "A score from 0-100 indicating the potential partnership value." }
-                    },
-                    required: ["company_name", "website", "contact_person", "role", "email", "phone", "linkedin_profile", "rationale", "verification_status", "interest_score"]
-                }
-            }
-        }
-    });
-    return safeJsonParse(aiResponse.text);
-}
-
 
 /**
  * Generates business insights based on performance data.
