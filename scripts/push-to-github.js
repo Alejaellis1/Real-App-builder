@@ -1,5 +1,4 @@
-
-// This script automates the process of pushing the '/api/publish.js'
+// This script automates the process of pushing the '/api/check-publish.js'
 // file to a specified branch on GitHub.
 //
 // --- PRE-REQUISITES ---
@@ -26,10 +25,10 @@ const OWNER = process.env.GITHUB_OWNER;
 const REPO = process.env.GITHUB_REPO;
 
 // File and branch configuration
-const FILE_PATH = 'components/PublishModal.tsx';
-const TARGET_BRANCH = 'feature/update-publish-logic';
+const FILE_PATH = 'api/check-publish.js';
+const TARGET_BRANCH = 'fix/supabase-connection-check-publish';
 const BASE_BRANCH = 'main';
-const COMMIT_MESSAGE = 'feat: Align publish logic and error handling with requirements';
+const COMMIT_MESSAGE = 'fix(api): improve supabase connection and error handling in check-publish';
 
 /**
  * Main function to handle the GitHub API interactions.
