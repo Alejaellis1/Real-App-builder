@@ -17,10 +17,10 @@ interface GenerationResult {
 // --- NEW ICONS ---
 const SparklesIcon = () => (
     <div className="w-10 h-10 relative flex-shrink-0">
-        <svg className="absolute top-0 left-0 w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute top-0 left-0 w-8 h-8" viewBox="0 0 32 32" fill="none">
             <path d="M16 0L19.314 12.686L32 16L19.314 19.314L16 32L12.686 19.314L0 16L12.686 12.686L16 0Z" fill="#A855F7"/>
         </svg>
-        <svg className="absolute bottom-1 right-1 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute bottom-1 right-1 w-4 h-4" viewBox="0 0 16 16" fill="none">
             <path d="M8 0L9.657 6.343L16 8L9.657 9.657L8 16L6.343 9.657L0 8L6.343 6.343L8 0Z" fill="#C084FC"/>
         </svg>
     </div>
@@ -28,7 +28,7 @@ const SparklesIcon = () => (
 
 const SerumBottleIcon = () => (
     <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path d="M22 11V10C22 9.44772 21.5523 9 21 9H11C10.4477 9 10 9.44772 10 10V11H22Z" fill="#EAD9D5"/>
             <path d="M17 9V5H15V9H17Z" fill="#EAD9D5"/>
             <path d="M18 5H14V4C14 3.44772 14.4477 3 15 3H17C17.5523 3 18 3.44772 18 4V5Z" fill="#EAD9D5"/>
@@ -39,7 +39,7 @@ const SerumBottleIcon = () => (
 
 const StarIcon = () => (
     <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="#A855F7" xmlns="http://www.w3.org/2000/svg">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="#A855F7">
             <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z"/>
         </svg>
     </div>
@@ -136,7 +136,7 @@ const Recommendations: React.FC = () => {
 
                 <label htmlFor="form-upload" className="block w-full cursor-pointer text-center text-pink-600 font-semibold border-2 border-dashed border-pink-300 rounded-lg px-6 py-3 hover:bg-pink-50 hover:border-pink-400 transition-colors mb-6">
                     <span className="flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span>Upload Intake Form & Auto-Fill</span>

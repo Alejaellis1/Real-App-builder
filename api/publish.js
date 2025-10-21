@@ -7,6 +7,9 @@ import Stripe from 'stripe';
  * app data to Supabase. This function is designed for the Vercel Node.js 22.x runtime.
  */
 export default async function handler(req, res) {
+  // Ensure all responses are correctly typed as JSON.
+  res.setHeader('Content-Type', 'application/json');
+
   // 1. Only accept POST requests.
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
