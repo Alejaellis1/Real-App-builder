@@ -97,9 +97,26 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             });
 
             addLog('Receiving response from server...');
+
+            if (!response.ok) {
+                let errorMessage = `Publishing failed with status: ${response.status}.`;
+                try {
+                    // Try to parse error response as JSON, as the API intends.
+                    const errorJson = await response.json();
+                    errorMessage = errorJson.message || errorMessage;
+                } catch (e) {
+                    // If parsing fails, it's likely Vercel's generic error page.
+                    console.error("Could not parse error response as JSON.");
+                     if (response.status === 500) {
+                        errorMessage = 'A critical server error occurred. Please check server configuration and logs.';
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+            
             const data = await response.json();
 
-            if (!response.ok || !data.success) {
+            if (!data.success) {
                 throw new Error(data.message || 'An unknown server error occurred.');
             }
 
