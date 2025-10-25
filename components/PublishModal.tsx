@@ -48,12 +48,41 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
     const [liveUrl, setLiveUrl] = useState('');
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
+    
+    // New state for detecting existing published apps
+    const [existingUrl, setExistingUrl] = useState<string | null>(null);
+    const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
         // Pre-fill email if locationId is a valid email and not a guest
         if (!isGuest && locationId && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(locationId)) {
             setEmail(locationId);
         }
+
+        // Check for existing published app
+        const checkPublishStatus = async () => {
+            if (isGuest) {
+                setIsChecking(false);
+                return;
+            }
+            try {
+                const response = await fetch('/api/check-publish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contact_id: locationId }),
+                });
+                const data = await response.json();
+                if (data.success && data.url) {
+                    setExistingUrl(new URL(data.url, window.location.origin).href);
+                }
+            } catch (err) {
+                console.error("Failed to check publish status:", err);
+            } finally {
+                setIsChecking(false);
+            }
+        };
+
+        checkPublishStatus();
     }, [locationId, isGuest]);
     
     const handlePublish = async () => {
@@ -95,13 +124,19 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             await new Promise(res => setTimeout(res, 800));
 
             if (!response.ok) {
-                let errorMessage = `Publishing failed with status: ${response.status}.`;
+                let errorMessage = `Publishing failed unexpectedly. Please try again later.`; // A user-friendly default.
                 try {
                     const errorJson = await response.json();
+                    // The backend provides specific, user-friendly messages, so we prefer those.
                     errorMessage = errorJson.message || errorMessage;
                 } catch (e) {
-                     if (response.status === 500) {
-                        errorMessage = 'A critical server error occurred. Please check server configuration and logs.';
+                    // This block executes if `response.json()` fails, which typically happens with
+                    // gateway 5xx errors that send HTML/text instead of JSON.
+                    if (response.status >= 500) {
+                        errorMessage = 'A server error occurred during publishing. This may be due to a configuration issue. Please contact support if the problem persists.';
+                    } else {
+                        // For non-500 errors (like 4xx) that don't send a JSON body.
+                        errorMessage = `An unexpected error occurred (Status: ${response.status}). Please try again.`;
                     }
                 }
                 throw new Error(errorMessage);
@@ -134,20 +169,31 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
     };
     
     const handleCopy = () => {
-        if (!liveUrl) return;
-        navigator.clipboard.writeText(liveUrl).then(() => {
+        const urlToCopy = liveUrl || existingUrl;
+        if (!urlToCopy) return;
+        navigator.clipboard.writeText(urlToCopy).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         });
     };
+
+    if (isChecking) {
+        return (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+                <div className="bg-violet-50 w-full max-w-lg rounded-2xl shadow-2xl p-6 sm:p-8 flex items-center justify-center h-64" onClick={(e) => e.stopPropagation()}>
+                    <svg className="animate-spin h-8 w-8 text-pink-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-violet-50 w-full max-w-lg max-h-[90vh] rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 relative" onClick={(e) => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-stone-500 hover:text-stone-800 transition-colors" aria-label="Close"><svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-stone-900">Publish Your App</h2>
-                    <p className="text-stone-600 mt-1">Once published, your app will be live and accessible to your clients via a unique URL.</p>
+                    <h2 className="text-2xl font-bold text-stone-900">{existingUrl ? 'Update Your App' : 'Publish Your App'}</h2>
+                    <p className="text-stone-600 mt-1">{existingUrl ? 'Publishing again will overwrite your current live version.' : 'Once published, your app will be live and accessible to your clients via a unique URL.'}</p>
                 </div>
                 
                 <div className="overflow-y-auto pr-2 -mr-3 flex-1">
@@ -167,7 +213,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                                         id="email" 
                                         value={email} 
                                         onChange={(e) => setEmail(e.target.value)} 
-                                        className="w-full bg-white/50 text-stone-900 rounded-lg border-stone-300 focus:ring-pink-500 focus:border-pink-500 shadow-[0_1px_3px_rgba(10,186,181,0.3)]"
+                                        className="w-full bg-white/50 text-stone-900 rounded-lg border-stone-300 focus:ring-indigo-500 focus:border-indigo-500 shadow-[0_1px_3px_rgba(10,186,181,0.3)]"
                                         placeholder="you@example.com"
                                     />
                                 </div>
@@ -181,9 +227,9 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                                 <button 
                                     onClick={handlePublish} 
                                     disabled={publishState !== 'idle'} 
-                                    className="mt-6 w-full text-lg font-semibold text-black bg-pink-400 px-5 py-3 rounded-lg hover:bg-pink-500 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-pink-400/60 disabled:bg-stone-300 disabled:cursor-not-allowed disabled:shadow-inner disabled:scale-100"
+                                    className="mt-6 w-full text-lg font-semibold text-white bg-indigo-600 px-5 py-3 rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-[0_0_15px_0] shadow-indigo-500/60 disabled:bg-stone-300 disabled:cursor-not-allowed disabled:shadow-inner disabled:scale-100"
                                 >
-                                    Publish App
+                                    {existingUrl ? 'Update App' : 'Publish App'}
                                 </button>
                             </div>
                          )}
@@ -222,7 +268,7 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
                                                     id="liveUrl" 
                                                     readOnly 
                                                     value={liveUrl} 
-                                                    className="flex-1 block w-full min-w-0 rounded-none rounded-l-md border-stone-300 bg-stone-50 text-pink-700 px-3 py-2 text-sm font-mono"
+                                                    className="flex-1 block w-full min-w-0 rounded-none rounded-l-md border-stone-300 bg-stone-50 text-indigo-700 px-3 py-2 text-sm font-mono"
                                                     onClick={(e) => (e.target as HTMLInputElement).select()}
                                                 />
                                                 <button 
