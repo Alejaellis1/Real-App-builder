@@ -1,1 +1,40 @@
-{"name":"solopro-ai-app-builder","private":true,"version":"1.0.0","type":"module","scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"dependencies":{"@google/genai":"^1.22.0","@supabase/supabase-js":"^2.75.1","papaparse":"^5.4.1","react":"^18.3.1","react-dom":"^18.3.1","stripe":"^16.2.0"},"devDependencies":{"@types/papaparse":"^5.3.14","@types/react":"^18.3.3","@types/react-dom":"^18.3.0","@vitejs/plugin-react":"^4.3.1","typescript":"^5.4.5","vite":"^5.3.1","tailwindcss":"^3.4.8","postcss":"^8.4.24","autoprefixer":"^10.4.14"},"tailwind":{"content":["./index.html","./src/**/*.{js,jsx,ts,tsx}"],"theme":{"extend":{}},"plugins":[]},"engines":{"node":"22.x"}}
+{
+  "name": "solopro-ai-app-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.22.0",
+    "@supabase/supabase-js": "^2.75.1",
+    "papaparse": "^5.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "stripe": "^16.2.0"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1"
+  },
+  "tailwind": {
+    "content": [
+      "./index.html",
+      "./src/**/*.{js,ts,jsx,tsx}"
+    ],
+    "theme": {
+      "extend": {}
+    },
+    "plugins": []
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
