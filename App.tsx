@@ -20,29 +20,41 @@ const App: React.FC = () => {
 
   // Effect to handle routing: check for published app, Automate Your Spa Portal user, or guest
   useEffect(() => {
+    const path = window.location.pathname;
+    const appPathMatch = path.match(/^\/customer-apps\/(.+)/);
+
+    if (appPathMatch && appPathMatch[1]) {
+        const appId = decodeURIComponent(appPathMatch[1]);
+        setIsLoading(true);
+        fetch(`/api/get-app?id=${appId}`)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch with status: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success && data.config) {
+                    setPublishedAppConfig(data.config);
+                } else {
+                    setAppNotFound(true);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to fetch published app:", err);
+                setAppNotFound(true);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+        return;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
-    const appId = urlParams.get('app');
-    const appUser = urlParams.get('user'); // In Automate Your Spa Portal, this would be the locationId
     const automateYourSpaPortalLocationId = urlParams.get('locationId');
     const GUEST_ID_KEY = 'soloProGuestId';
 
-    if (appId && appUser) { // Published app view
-        try {
-            // Key is now namespaced with user ID (locationId) and app ID
-            const savedApp = localStorage.getItem(`publishedApp_${appUser}_${appId}`);
-            if (savedApp) {
-                const parsedConfig = JSON.parse(savedApp);
-                setPublishedAppConfig(parsedConfig);
-            } else {
-                 console.warn(`No published app found for ID: ${appId} and user: ${appUser}`);
-                 setAppNotFound(true);
-            }
-        } catch (error) {
-            console.error("Failed to load published app state:", error);
-            setAppNotFound(true);
-        }
-        setIsLoading(false);
-    } else if (automateYourSpaPortalLocationId) { // Builder view from Automate Your Spa Portal
+    if (automateYourSpaPortalLocationId) { // Builder view from Automate Your Spa Portal
         setLocationId(automateYourSpaPortalLocationId);
         setIsGuest(false);
         localStorage.removeItem(GUEST_ID_KEY); // Clean up guest ID
@@ -74,7 +86,7 @@ const App: React.FC = () => {
             <h1 className="text-5xl font-bold text-pink-600">404</h1>
             <h2 className="text-2xl font-semibold text-stone-800 mt-2">App Not Found</h2>
             <p className="text-stone-600 mt-2 max-w-sm">The app you are looking for does not exist or has been moved. Please check the URL and try again.</p>
-            <a href={window.location.pathname} className="mt-8 px-6 py-3 bg-pink-500 text-white rounded-lg shadow-md hover:bg-pink-600 transition-colors font-semibold">
+            <a href="/" className="mt-8 px-6 py-3 bg-pink-500 text-white rounded-lg shadow-md hover:bg-pink-600 transition-colors font-semibold">
                 ← Return to the App Builder
             </a>
         </div>
@@ -89,7 +101,7 @@ const App: React.FC = () => {
             </div>
              <div className="flex-shrink-0 mt-4 text-center">
                 <p className="text-xs text-gray-500 mt-2">
-                    This is a preview of a published app.
+                    Powered by SoloPro
                 </p>
             </div>
         </div>

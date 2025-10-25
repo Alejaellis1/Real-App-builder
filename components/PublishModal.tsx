@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { DesignConfig } from '../App';
 
@@ -72,20 +71,16 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
         };
         
         addLog('Capturing app design...');
-        const appContainer = document.getElementById('appContainer');
-        if (!appContainer) {
-            setError('Could not find the app preview to publish. Please try again.');
-            setPublishState('idle');
-            return;
-        }
-        const html_data = appContainer.outerHTML;
+        await new Promise(res => setTimeout(res, 500));
         
         addLog('Preparing app data for publication...');
         const payload = {
             contact_id: email,
             app_name: config.appName,
-            html_data: html_data,
+            // Send the entire design config as a JSON string. This is more robust than sending HTML.
+            html_data: JSON.stringify(config),
         };
+        await new Promise(res => setTimeout(res, 500));
 
         addLog('Connecting to publishing service...');
 
@@ -97,16 +92,14 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             });
 
             addLog('Receiving response from server...');
+            await new Promise(res => setTimeout(res, 800));
 
             if (!response.ok) {
                 let errorMessage = `Publishing failed with status: ${response.status}.`;
                 try {
-                    // Try to parse error response as JSON, as the API intends.
                     const errorJson = await response.json();
                     errorMessage = errorJson.message || errorMessage;
                 } catch (e) {
-                    // If parsing fails, it's likely Vercel's generic error page.
-                    console.error("Could not parse error response as JSON.");
                      if (response.status === 500) {
                         errorMessage = 'A critical server error occurred. Please check server configuration and logs.';
                     }
@@ -119,11 +112,19 @@ const PublishModal: React.FC<PublishModalProps> = ({ onClose, config, locationId
             if (!data.success) {
                 throw new Error(data.message || 'An unknown server error occurred.');
             }
+            
+            // Generate full URL from the relative path returned by the API
+            const fullUrl = new URL(data.url, window.location.origin).href;
 
             addLog('Deployment successful! Your app is live.');
-            setLiveUrl(data.url);
+            setLiveUrl(fullUrl);
             setPublishState('published');
-            window.open(data.url, '_blank');
+            
+            // Persist the published config in localStorage for easy access later
+            // This key is used for previewing a published app without a full page reload if needed
+            localStorage.setItem(`publishedApp_${email}_${config.appName}`, JSON.stringify(config));
+
+            window.open(fullUrl, '_blank');
 
         } catch (err: any) {
             console.error('Publishing Error:', err);

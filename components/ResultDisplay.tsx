@@ -198,8 +198,9 @@ const ServicesContent: React.FC<{config: DesignConfig}> = ({ config }) => {
   const services = [
     { name: 'Signature Facial', price: '$85', duration: '60 min' },
     { name: 'Microneedling', price: '$250', duration: '75 min' },
-    { name: 'LED Therapy Add-On', price: '$40', duration: '15 min' },
     { name: 'Botox Consultation', price: 'Free', duration: '30 min' },
+    { name: 'Lip Filler (1 Syringe)', price: '$650', duration: '45 min' },
+    { name: 'LED Therapy Add-On', price: '$40', duration: '15 min' },
   ];
   return (
     <div className="p-5">
