@@ -1,116 +1,87 @@
-// Vercel Serverless Function: /api/publish.js
 import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
 
-// --- Pre-flight Check for Environment Variables ---
-// This check runs when the function is initialized. If critical variables are missing,
-// the function will fail to deploy or start, making the configuration error clear in Vercel logs.
-const { SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !STRIPE_SECRET_KEY) {
-    console.error('FATAL_ERROR: Serverless function is missing required environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY). The function cannot start.');
-    throw new Error('Server configuration error: Missing required environment variables.');
-}
+// Initialize Supabase with your private service key
+const supabase = createClient(
+  process.env.SUPABASE_URL,          // Supabase project URL
+  process.env.SUPABASE_SERVICE_KEY   // Supabase service role key
+);
 
-// Initialize clients once per function instance for efficiency.
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-    apiVersion: '2024-04-10', // Pin the API version for stability
-});
-
-/**
- * Handles publishing an app by verifying a Stripe subscription and then saving the
- * app data to Supabase. This function is designed for the Vercel Node.js 22.x runtime.
- */
 export default async function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ success: false, message: `Method Not Allowed. Please use POST.` });
-  }
-
-  console.log('Received publish request.');
-
   try {
-    const { contact_id, app_name, html_data } = req.body;
-    if (!contact_id || !app_name || !html_data) {
-      console.warn('Validation failed: Missing required fields in request body.');
-      return res.status(400).json({ success: false, message: 'Missing required fields: contact_id, app_name, and html_data are required.' });
-    }
-    console.log(`Processing request for contact_id: ${contact_id}`);
+    // 1️⃣ Get Stripe customer ID from request body
+    const { stripeCustomerId } = req.body;
+    if (!stripeCustomerId) return res.status(400).json({ error: 'Missing stripeCustomerId' });
 
-    console.log(`Querying Supabase for stripe_customer_id for: ${contact_id}`);
-    const { data: userRecord, error: queryError } = await supabase
-      .from('customer_apps')
-      .select('stripe_customer_id')
-      .eq('contact_id', contact_id)
-      .maybeSingle();
+    // 2️⃣ Look up the customer's folder in Supabase table
+    const { data: appData, error: tableError } = await supabase
+      .from('published_apps')
+      .select('folder_name')
+      .eq('stripe_customer_id', stripeCustomerId)
+      .single();
 
-    if (queryError) {
-      console.error('Supabase query error:', queryError.message);
-      throw new Error('Failed to query the database for customer details.');
-    }
+    if (tableError || !appData) return res.status(404).json({ error: 'Customer app not found' });
 
-    if (!userRecord || !userRecord.stripe_customer_id) {
-      console.log(`Subscription for ${contact_id} not found or missing Stripe customer ID.`);
-      return res.status(403).json({ success: false, message: "Subscription inactive" });
-    }
-    const stripeCustomerId = userRecord.stripe_customer_id;
-    console.log(`Found Stripe Customer ID: ${stripeCustomerId}`);
+    const folderName = appData.folder_name;
 
-    console.log(`Checking Stripe for active subscriptions for customer: ${stripeCustomerId}`);
-    const subscriptions = await stripe.subscriptions.list({
-      customer: stripeCustomerId,
-      status: 'all', // Check all statuses and then filter client-side
-      limit: 10,
-    });
+    // 3️⃣ List all files in the bucket folder
+    const { data: filesList, error: listError } = await supabase.storage
+      .from('customer-apps')       // Your bucket name
+      .list(folderName, { limit: 100 });
 
-    const hasActiveSubscription = subscriptions.data.some(
-      sub => sub.status === 'active' || sub.status === 'trialing'
+    if (listError) throw listError;
+
+    // 4️⃣ Download each file and prepare for Vercel deployment
+    const files = await Promise.all(
+      filesList.map(async (file) => {
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('customer-apps')
+          .download(`${folderName}/${file.name}`);
+        if (downloadError) throw downloadError;
+
+        const arrayBuffer = await fileData.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+        return {
+          file: `apps/${folderName}/${file.name}`,
+          data: base64
+        };
+      })
     );
 
-    if (!hasActiveSubscription) {
-      console.log(`No active Stripe subscription found for customer: ${stripeCustomerId}`);
-      return res.status(403).json({ success: false, message: "Subscription inactive" });
-    }
+    // 5️⃣ Deploy to Vercel
+    const form = new FormData();
+    form.append('name', process.env.VERCEL_PROJECT_ID); // Vercel project ID
+    form.append('target', 'production');
+    form.append('files', JSON.stringify(files));
 
-    console.log(`Active subscription confirmed for customer: ${stripeCustomerId}. Proceeding with upsert.`);
-
-    const published_app_url = `/customer-apps/${encodeURIComponent(contact_id)}`;
-    const { error: upsertError } = await supabase
-      .from('customer_apps')
-      .upsert({
-        contact_id,
-        app_name,
-        html_data,
-        last_updated: new Date().toISOString(),
-        published_app_url,
-      }, {
-        onConflict: 'contact_id'
-      });
-
-    if (upsertError) {
-      console.error('Supabase upsert error:', upsertError.message);
-      throw new Error('Failed to save app data to the database.');
-    }
-
-    console.log(`Successfully published app for ${contact_id}. URL: ${published_app_url}`);
-
-    return res.status(200).json({
-      success: true,
-      message: 'App published successfully',
-      url: published_app_url
+    const vercelResponse = await fetch('https://api.vercel.com/v13/deployments', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.VERCEL_TOKEN}`,
+      },
+      body: form
     });
 
+    const deployment = await vercelResponse.json();
+    if (!deployment.url) throw new Error('Deployment failed');
+
+    // 6️⃣ Update Supabase table with live URL & timestamp
+    await supabase
+      .from('published_apps')
+      .update({
+        vercel_url: `https://${deployment.url}`,
+        status: 'published',
+        last_deploy: new Date()
+      })
+      .eq('stripe_customer_id', stripeCustomerId);
+
+    // 7️⃣ Return the live URL
+    res.status(200).json({ url: `https://${deployment.url}` });
+
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error('Unhandled error in /api/publish function:', errorMessage);
-    
-    // Check for a Stripe-specific error structure
-    if (err && typeof err === 'object' && 'type' in err) {
-        return res.status(500).json({ success: false, message: `A payment processing error occurred: ${errorMessage}` });
-    }
-    
-    return res.status(500).json({ success: false, message: 'An unexpected server error occurred.' });
+    console.error(err);
+    res.status(500).json({ error: 'Deployment failed', details: err.message });
   }
 }
