@@ -24,6 +24,16 @@
     "typescript": "^5.4.5",
     "vite": "^5.3.1"
   },
+  "tailwind": {
+    "content": [
+      "./index.html",
+      "./src/**/*.{js,ts,jsx,tsx}"
+    ],
+    "theme": {
+      "extend": {}
+    },
+    "plugins": []
+  },
   "engines": {
     "node": "22.x"
   }
