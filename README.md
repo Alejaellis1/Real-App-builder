@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Solo Pro — Vite + React + Tailwind (local build)
 
-# Run and deploy your AI Studio app
+This project now uses Tailwind compiled locally (PostCSS + Autoprefixer) instead of the CDN. Follow these steps to run and deploy.
 
-This contains everything you need to run your app locally.
+## Install
+1. Install packages:
+   npm install
 
-View your app in AI Studio: https://ai.studio/apps/drive/14jaix8sRgGSGZrpdGzJRcM9TuM_A1Y03
+## Development
+2. Start dev server:
+   npm run dev
+3. Open the URL printed by Vite (usually http://localhost:5173).
 
-## Run Locally
+## Build & Preview
+4. Build for production:
+   npm run build
+5. Preview production build locally:
+   npm run preview
 
-**Prerequisites:**  Node.js
+## Vercel deployment
+- Vercel detects Vite projects automatically. Default build command: `npm run build` and output directory `dist`.
+- Ensure your environment has Node matching your engines or a compatible version (Node 18+ is fine for Vite).
 
+## Removing the Tailwind CDN
+- Remove any <link> or <script> to the Tailwind CDN (for example <script src="https://cdn.tailwindcss.com"></script>) from your HTML or templates.
+- This project compiles Tailwind into src/main.css via PostCSS. The CDN snippet is not needed.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Notes about visual parity
+- Tailwind utility classes are identical between CDN and local builds. To ensure perfect visual parity:
+  - Keep the same class names in your components.
+  - If you used the CDN snippet to set a custom Tailwind config (e.g., via the CDN script), replicate that config in tailwind.config.js.
+  - If the CDN snippet injected fonts (e.g., a Google Fonts <link>), add the same font link to index.html or import in main.css.
